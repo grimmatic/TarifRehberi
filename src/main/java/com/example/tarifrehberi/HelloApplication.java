@@ -22,7 +22,7 @@ TextField arama;
 
         // JavaFX GUI yükleniyor
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("AnaSayfa.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1920, 1080);
+        Scene scene = new Scene(fxmlLoader.load(), 1280, 720);
         stage.setTitle("Tarif Rehberi");
         stage.setScene(scene);
         stage.show();
