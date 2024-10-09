@@ -1,14 +1,10 @@
 package com.example.tarifrehberi;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DatabaseHelper {
+public class Database {
 
 //Tarif adini cekme
 
@@ -51,27 +47,7 @@ public class DatabaseHelper {
     }
 
 
-    public ObservableList<Tarif> getTarifler() {
-        ObservableList<Tarif> tarifler = FXCollections.observableArrayList();
-        String sql = "SELECT TarifAdi, Kategori, HazirlanmaSuresi, Talimatlar FROM tarifler ORDER BY Kategori ASC";
 
-        try (Connection conn = connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                Tarif tarif = new Tarif(
-                        rs.getString("TarifAdi"),
-                        rs.getString("Kategori"),
-                        rs.getInt("HazirlanmaSuresi"),
-                        rs.getString("Talimatlar")
-                );
-                tarifler.add(tarif);
-            }
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return tarifler;
-    }
 
 
 

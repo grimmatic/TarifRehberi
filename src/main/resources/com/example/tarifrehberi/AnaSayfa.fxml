@@ -3,22 +3,22 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.cell.PropertyValueFactory?>
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.tarifrehberi.HelloController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.tarifrehberi.AnaSayfaController">
    <children>
-      <BorderPane layoutX="-1.0" layoutY="-3.0" prefHeight="1084.0" prefWidth="1922.0">
+      <BorderPane layoutX="-1.0" layoutY="-3.0" prefHeight="1080.0" prefWidth="1920.0">
          <top>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: #5243BF;" BorderPane.alignment="CENTER">
                <children>
@@ -80,30 +80,40 @@
             </VBox>
          </left>
          <center>
-            <TableView fx:id="liste" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
-               <columns>
-                  <TableColumn fx:id="tarifAdiColumn" text="Tarif Adı" prefWidth="150">
-                     <cellValueFactory>
-                        <PropertyValueFactory property="tarifAdi" />
-                     </cellValueFactory>
-                  </TableColumn>
-                  <TableColumn fx:id="kategoriColumn" text="Kategori" >
-                     <cellValueFactory>
-                        <PropertyValueFactory property="kategori" />
-                     </cellValueFactory>
-                  </TableColumn>
-                  <TableColumn fx:id="hazirlanmaSuresiColumn" text="Hazırlanma Süresi">
-                     <cellValueFactory>
-                        <PropertyValueFactory property="hazirlanmaSuresi" />
-                     </cellValueFactory>
-                  </TableColumn>
-                  <TableColumn fx:id="talimatlarColumn" text="Talimatlar">
-                     <cellValueFactory>
-                        <PropertyValueFactory property="talimatlar" />
-                     </cellValueFactory>
-                  </TableColumn>
-               </columns>
-            </TableView>
+            <ScrollPane prefHeight="1500.0" prefWidth="1605.0" BorderPane.alignment="CENTER">
+              <content>
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="2100.0" prefWidth="1631.0">
+                     <children>
+                        <GridPane fx:id="recipeGrid" gridLinesVisible="true" prefHeight="1935.0" prefWidth="1638.0" style="-fx-background-color: #b9b4d1; -fx-border-color: #6f5cc2">
+                           <columnConstraints>
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
+                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
+                           </columnConstraints>
+                           <rowConstraints>
+
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+
+
+                           </rowConstraints>
+                        </GridPane>
+                     </children>
+                  </AnchorPane>
+              </content>
+            </ScrollPane>
          </center>
       </BorderPane>
    </children>
