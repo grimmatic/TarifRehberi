@@ -53,14 +53,18 @@ public class DatabaseHelper {
 
     public ObservableList<Tarif> getTarifler() {
         ObservableList<Tarif> tarifler = FXCollections.observableArrayList();
-        String sql = "SELECT TarifAdi FROM tarifler ";
-        // tarif id'ye göre sırala ORDER BY TarifID ASC
+        String sql = "SELECT TarifAdi, Kategori, HazirlanmaSuresi, Talimatlar FROM tarifler ORDER BY Kategori ASC";
+
         try (Connection conn = connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-
-                Tarif tarif = new Tarif(rs.getString("TarifAdi"));
+                Tarif tarif = new Tarif(
+                        rs.getString("TarifAdi"),
+                        rs.getString("Kategori"),
+                        rs.getInt("HazirlanmaSuresi"),
+                        rs.getString("Talimatlar")
+                );
                 tarifler.add(tarif);
             }
         } catch (SQLException e) {

@@ -6,23 +6,19 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.TableView;
 import javafx.stage.Stage;
 import java.io.IOException;
 public class HelloApplication extends Application {
-TextField arama;
 
 @FXML
-public ListView<Tarif> liste;
+public TableView<Tarif> liste;
 
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("AnaSayfa.fxml"));
         Parent root = fxmlLoader.load();
-        ListView<Tarif> liste = (ListView<Tarif>) root.lookup("#liste");
+        TableView<Tarif> liste = (TableView<Tarif>) root.lookup("#liste");
         Scene scene = new Scene(root, 1280, 720);
         stage.setTitle("Tarif Rehberi");
         stage.setScene(scene);
@@ -36,7 +32,7 @@ public ListView<Tarif> liste;
 
         if (liste != null) {
             ObservableList<Tarif> list = db.getTarifler();
-            liste.setItems(list);
+            liste.getItems().setAll(list);
 
     }
 }
