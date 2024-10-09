@@ -121,7 +121,7 @@ public class AnaSayfaController implements Initializable{
     }
 
 
-   /* public void switchToAnasayfa(ActionEvent event) throws Exception {
+   /* public void switchToAnaSayfa(ActionEvent event) throws Exception {
         root = FXMLLoader.load(getClass().getResource("AnaSayfa.fxml"));
         stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         scene = new Scene(root);

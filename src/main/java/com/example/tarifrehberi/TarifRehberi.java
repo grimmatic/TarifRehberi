@@ -6,14 +6,14 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import java.io.IOException;
-public class AnaSayfa extends Application {
+public class TarifRehberi extends Application {
 
 @FXML
 
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(AnaSayfa.class.getResource("AnaSayfa.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(TarifRehberi.class.getResource("AnaSayfa.fxml"));
         Parent root = fxmlLoader.load();
         Scene scene = new Scene(root, 1280, 720);
         stage.setTitle("Tarif Rehberi");
