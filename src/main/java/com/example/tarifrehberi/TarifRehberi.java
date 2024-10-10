@@ -22,7 +22,7 @@ public class TarifRehberi extends Application {
 
 
         // Database'dan veritabanını başlatma ve tablo oluşturma işlemi
-        Database db = new Database();
+
         //db.connect();
       // db.TarifEkle("Ben yaptım oldu", "Ana Yemek", 20,"Suya koy 10 dk bekle al süz ye"); // Tarif ekle
 

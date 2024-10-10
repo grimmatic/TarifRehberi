@@ -22,7 +22,7 @@
          <top>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: #5243BF;" BorderPane.alignment="CENTER">
                <children>
-                  <Label graphicTextGap="10.0" prefHeight="74.0" prefWidth="553.0" text="Tarif Rehberim" textFill="WHITE">
+                  <Label graphicTextGap="10.0" prefHeight="74.0" prefWidth="553.0" text="Tarif Rehberim" textFill="WHITE" style="-fx-font-family: 'Kunstler Script'; -fx-font-size: 73;">
                      <graphic>
                         <ImageView fitHeight="70.0" fitWidth="70.0" pickOnBounds="true" preserveRatio="true">
                            <image>
@@ -30,11 +30,8 @@
                            </image>
                         </ImageView>
                      </graphic>
-                     <font>
-                        <Font name="Kunstler Script" size="73.0" />
-                     </font>
                   </Label>
-                  <TextField focusTraversable="false" prefWidth="200.0" promptText="Ara...">
+                  <TextField fx:id="arama" focusTraversable="false" prefWidth="200.0" promptText="Ara...">
                      <padding>
                         <Insets left="10.0" />
                      </padding>
@@ -80,35 +77,68 @@
             </VBox>
          </left>
          <center>
-            <ScrollPane prefHeight="1500.0" prefWidth="1605.0" BorderPane.alignment="CENTER">
+            <ScrollPane prefHeight="1500.0" prefWidth="1280.0" BorderPane.alignment="CENTER">
               <content>
-                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="2100.0" prefWidth="1631.0">
+                <AnchorPane fx:id="anchor" minHeight="0.0" minWidth="0.0" prefHeight="2600.0" prefWidth="981.0" >
                      <children>
-                        <GridPane fx:id="recipeGrid" gridLinesVisible="true" prefHeight="1935.0" prefWidth="1638.0" style="-fx-background-color: #b9b4d1; -fx-border-color: #6f5cc2">
+                        <GridPane fx:id="recipeGrid"  prefHeight="1935.0" prefWidth="1280.0" style="-fx-background-color: #b9b4d1; -fx-border-color: #6f5cc2">
                            <columnConstraints>
-                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
-                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
-                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
-                              <ColumnConstraints hgrow="SOMETIMES" minWidth="100.0" prefWidth="100.0" />
+                              <ColumnConstraints  minWidth="335.0" prefWidth="335.0" />
+                              <ColumnConstraints  minWidth="335.0" prefWidth="335.0" />
+                              <ColumnConstraints  minWidth="335.0" prefWidth="335.0" />
                            </columnConstraints>
-                           <rowConstraints>
+                           <children>
 
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
-                              <RowConstraints minHeight="100.0" prefHeight="100.0" vgrow="SOMETIMES" />
+                              <Button alignment="BASELINE_LEFT" graphicTextGap="10.0" mnemonicParsing="false" prefHeight="71.0" prefWidth="283.0" stylesheets="@../../../styling.css" text="Sil" textFill="WHITE">
+                                 <graphic>
+                                    <ImageView fitHeight="48.0" fitWidth="48.0" pickOnBounds="true" preserveRatio="true">
+                                       <image>
+                                          <Image url="@../../../icons/delete.png" />
+                                       </image></ImageView>
+                                 </graphic>
+                                 <padding>
+                                    <Insets left="35.0" />
+                                 </padding>
+                                 <font>
+                                    <Font name="Cascadia Code Regular" size="20.0" />
+                                 </font>
+                              </Button>
+
+                              <Button alignment="BASELINE_LEFT" graphicTextGap="10.0" mnemonicParsing="false" prefHeight="71.0" prefWidth="283.0" stylesheets="@../../../styling.css" text="Düzenle" textFill="WHITE">
+                                 <graphic>
+                                    <ImageView fitHeight="48.0" fitWidth="48.0" pickOnBounds="true" preserveRatio="true">
+                                       <image>
+                                          <Image url="@../../../icons/rewrite.png" />
+                                       </image></ImageView>
+                                 </graphic>
+                                 <padding>
+                                    <Insets left="35.0" />
+                                 </padding>
+                                 <font>
+                                    <Font name="Cascadia Code Regular" size="20.0" />
+                                 </font>
+                              </Button>
 
 
-                           </rowConstraints>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                           </children>
+
+                         
+
+
                         </GridPane>
                      </children>
                   </AnchorPane>
