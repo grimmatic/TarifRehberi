@@ -4,7 +4,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -12,11 +11,13 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import java.net.URL;
 import java.sql.*;
+import java.util.Objects;
 import java.util.ResourceBundle;
+
+
 
 public class AnaSayfaController implements Initializable{
 
@@ -26,6 +27,12 @@ public class AnaSayfaController implements Initializable{
     private GridPane recipeGrid;
     @FXML
     private AnchorPane anchor;
+    @FXML
+    private ComboBox<String> sortComboBox;
+    @FXML
+    private VBox filterVBox;
+    @FXML
+    private TreeView<HBox> treeView;
     private Stage stage;
     private Scene scene;
     private Parent root;
@@ -43,30 +50,68 @@ public class AnaSayfaController implements Initializable{
             });
         }
         loadRecipes("");
-       // arama.setOnAction(this::aramaYap);
-        arama.textProperty().addListener((observable, oldValue, newValue) -> {
+        arama.textProperty().addListener((observable, oldValue, newValue) -> loadRecipes(newValue));
 
-                loadRecipes(newValue);
+        sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> loadRecipes(arama.getText()));
 
-        });
+        for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) {
+            HBox hBox = categoryItem.getValue();
+            CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
+            checkBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                loadRecipes(arama.getText());
+            });
+        }
+
+
+
     }
 
     private void loadRecipes(String search) {
         int satir=0;
+        String sort = sortComboBox.getSelectionModel().getSelectedItem();
+        String categoryFilter = getSelectedCategories();
+        if (categoryFilter == null || categoryFilter.isEmpty()) {
+            recipeGrid.getChildren().clear();
+            return;
+        }
+
         try {
             Connection conn = DriverManager.getConnection("jdbc:sqlite:./identifier.sqlite");
             Statement stmt = conn.createStatement();
-            String query;
-            if (search.isEmpty()) {
-                query = "SELECT * FROM Tarifler";
-            } else {
-                query = "SELECT * FROM Tarifler WHERE TarifAdi LIKE '%" + search + "%'";
+            StringBuilder query = new StringBuilder("SELECT * FROM Tarifler");
+            boolean hasCondition = false;
+            if (!search.isEmpty()) {
+                query.append(" WHERE TarifAdi LIKE '%").append(search).append("%'");
+                hasCondition = true;
             }
-            ResultSet rs = stmt.executeQuery(query);
-            recipeGrid.getChildren().clear();
+
+            if (categoryFilter != null && !categoryFilter.isEmpty()) {
+                if (hasCondition) {
+                    query.append(" AND");
+                } else {
+                    query.append(" WHERE");
+                    hasCondition = true;
+                }
+                query.append(" Kategori IN ('").append(categoryFilter.replace(", ", "', '")).append("')");
+            }
+
+
+            if (sort != null) {
+                switch (sort) {
+                    case "-" -> query.append(" ORDER BY TarifID ASC");
+                    case "En Yavaş" -> query.append(" ORDER BY HazirlanmaSuresi DESC");
+                    case "En Çabuk" -> query.append(" ORDER BY HazirlanmaSuresi ASC");
+                }
+            }
+
+
+
          //   recipeGrid.getRowConstraints().clear();
+            ResultSet rs = stmt.executeQuery(query.toString());
+            recipeGrid.getChildren().clear();
             int row = 0;
             int column = 0;
+
             while (rs.next()) {
                 satir++;
                 String recipeName = rs.getString("TarifAdi");
@@ -83,9 +128,6 @@ public class AnaSayfaController implements Initializable{
 
 
                 VBox recipeBox = new VBox(nameLabel, categoryLabel, timeLabel);
-               // recipeBox.setSpacing(5);
-                //recipeBox.setPrefHeight(100);
-                // recipeBox.setPrefWidth(100);
                 for (int i = 0; i < (int)Math.ceil((double)satir / 3); i++){
 
                     RowConstraints rowConstraints = new RowConstraints();
@@ -95,11 +137,10 @@ public class AnaSayfaController implements Initializable{
                     anchor.setPrefHeight(150*(int)Math.ceil((double)satir / 3));
                 }
 
-                HBox buttonBox = new HBox(10);
+                HBox buttonBox = new HBox(30);
                 Button deleteButton = new Button();
                 deleteButton.setStyle("-fx-background-color:transparent;");
-                deleteButton.setGraphicTextGap(10);
-                ImageView imageView = new ImageView(new Image(getClass().getResourceAsStream("/icons/delete.png")));
+                ImageView imageView = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/delete.png"))));
                 imageView.setFitHeight(40);
                 imageView.setFitWidth(40);
                 deleteButton.setMaxWidth(30);
@@ -110,8 +151,7 @@ public class AnaSayfaController implements Initializable{
 
                 Button updateButton = new Button();
                 updateButton.setStyle("-fx-background-color:transparent;");
-                updateButton.setGraphicTextGap(10);
-                ImageView imageView0 = new ImageView(new Image(getClass().getResourceAsStream("/icons/rewrite.png")));
+                ImageView imageView0 = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/rewrite.png"))));
                 imageView0.setFitHeight(40);
                 imageView0.setFitWidth(40);
                 updateButton.setMaxWidth(30);
@@ -131,12 +171,12 @@ public class AnaSayfaController implements Initializable{
                 recipeBox.getChildren().add(buttonBox);
                 recipeGrid.add(recipeBox, column, row);
               //  recipeGrid.setConstraints(recipeBox, column, row);
+
                 recipeBox.setOnMouseClicked(event -> {
                     try {
                         FXMLLoader loader = new FXMLLoader(getClass().getResource("TarifDetayları.fxml"));
                         Parent root = loader.load();
 
-                        // Kontrolörü al ve tarif bilgilerini ayarla
                         TarifDetaylarıController controller = loader.getController();
                         controller.initialize(recipeName, category, preparationTime,Tarif);
 
@@ -147,9 +187,6 @@ public class AnaSayfaController implements Initializable{
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-
-
-
 
 
                     System.out.println("Tarif detayları: " + recipeName + ", " + category + ", " + preparationTime + " dakika");
@@ -170,9 +207,28 @@ public class AnaSayfaController implements Initializable{
         }
 
     }
+    @FXML
+    private void handleTreeViewButtonAction(ActionEvent event) {
+        filterVBox.setVisible(!filterVBox.isVisible());
+    }
 
+    private String getSelectedCategories() {
+        StringBuilder categories = new StringBuilder();
 
+        for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) {
+            HBox hBox = categoryItem.getValue();
+            CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
 
+            if (checkBox.isSelected()) {
+                if (categories.length() > 0) {
+                    categories.append(", ");
+                }
+                categories.append(((Label) hBox.getChildren().get(1)).getText());
+            }
+        }
+
+        return categories.length() > 0 ? categories.toString() : null;
+    }
 
    /* public void switchToAnaSayfa(ActionEvent event) throws Exception {
         root = FXMLLoader.load(getClass().getResource("AnaSayfa.fxml"));
@@ -183,7 +239,7 @@ public class AnaSayfaController implements Initializable{
     }*/
 
     public void switchToTarifDetayları(ActionEvent event) throws Exception {
-        root = FXMLLoader.load(getClass().getResource("TarifDetayları.fxml"));
+        root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("TarifDetayları.fxml")));
         stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         scene = new Scene(root);
         stage.setScene(scene);
@@ -191,47 +247,13 @@ public class AnaSayfaController implements Initializable{
     }
 
     public void switchToTarifEkle(ActionEvent event) throws Exception {
-        root = FXMLLoader.load(getClass().getResource("TarifEkle.fxml"));
+        root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("TarifEkle.fxml")));
         stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         scene = new Scene(root);
         stage.setScene(scene);
         stage.show();
     }
 
-    @FXML
-    private void aramaYap(ActionEvent event) {
-        String aramaMetni = arama.getText();
-        if (!aramaMetni.isEmpty()) {
-            aramaSonucunuGoster(aramaMetni);
-        }
-    }
-
-
-    private void aramaSonucunuGoster(String aramaMetni) {
-        try {
-            Connection conn = DriverManager.getConnection("jdbc:sqlite:./identifier.sqlite");
-            Statement stmt = conn.createStatement();
-            ResultSet rs = stmt.executeQuery("SELECT * FROM Tarifler WHERE TarifAdi LIKE '%" + aramaMetni + "%'");
-
-            // Gridpane'de sonuçları göster
-            recipeGrid.getChildren().clear();
-            int row = 0;
-            int column = 0;
-            while (rs.next()) {
-                String tarifAdi = rs.getString("TarifAdi");
-                Label nameLabel = new Label(tarifAdi);
-                nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-                recipeGrid.add(nameLabel, column, row);
-                column++;
-                if (column > 2) {
-                    column = 0;
-                    row++;
-                }
-            }
-        } catch (SQLException e) {
-            // Hata işleme
-        }
-    }
 
 
 
