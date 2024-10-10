@@ -3,7 +3,7 @@ package com.example.tarifrehberi;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 
-public class TarifDetaylarıController {
+public class TarifDetaylariController {
     @FXML
     private Label recipeNameLabel;
 

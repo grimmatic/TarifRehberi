@@ -174,10 +174,10 @@ public class AnaSayfaController implements Initializable{
 
                 recipeBox.setOnMouseClicked(event -> {
                     try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("TarifDetayları.fxml"));
+                        FXMLLoader loader = new FXMLLoader(getClass().getResource("TarifDetaylari.fxml"));
                         Parent root = loader.load();
 
-                        TarifDetaylarıController controller = loader.getController();
+                        TarifDetaylariController controller = loader.getController();
                         controller.initialize(recipeName, category, preparationTime,Tarif);
 
                         Stage stage = (Stage) recipeBox.getScene().getWindow();
@@ -239,7 +239,7 @@ public class AnaSayfaController implements Initializable{
     }*/
 
     public void switchToTarifDetayları(ActionEvent event) throws Exception {
-        root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("TarifDetayları.fxml")));
+        root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("TarifDetaylari.fxml")));
         stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         scene = new Scene(root);
         stage.setScene(scene);

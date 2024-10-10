@@ -7,7 +7,7 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="720.0"
             prefWidth="1280.0" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.tarifrehberi.TarifDetaylarıController">
+            fx:controller="com.example.tarifrehberi.TarifDetaylariController">
     <VBox prefHeight="720.0" prefWidth="1280.0" spacing="20" xmlns:fx="http://javafx.com/fxml">
         <padding>
             <Insets bottom="20" left="20" right="20" top="20"/>
