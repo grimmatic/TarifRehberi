@@ -126,7 +126,7 @@
                                        <value>
                                           <HBox>
                                              <CheckBox selected="true" />
-                                             <Label text="Hamur İşi" />
+                                             <Label text="Ana Yemek" />
                                           </HBox>
                                        </value>
                                     </TreeItem>
@@ -134,7 +134,7 @@
                                        <value>
                                           <HBox>
                                              <CheckBox selected="true" />
-                                             <Label text="Tatlılar" />
+                                             <Label text="Çorba" />
                                           </HBox>
                                        </value>
                                     </TreeItem>
@@ -142,7 +142,7 @@
                                        <value>
                                           <HBox>
                                              <CheckBox selected="true" />
-                                             <Label text="Ana Yemekler" />
+                                             <Label text="Tatlı" />
                                           </HBox>
                                        </value>
                                     </TreeItem>
@@ -150,7 +150,7 @@
                                        <value>
                                           <HBox>
                                              <CheckBox selected="true" />
-                                             <Label text="Çorbalar" />
+                                             <Label text="Salata" />
                                           </HBox>
                                        </value>
                                     </TreeItem>
@@ -158,7 +158,7 @@
                                        <value>
                                           <HBox>
                                              <CheckBox selected="true" />
-                                             <Label text="Salatalar" />
+                                             <Label text="Meze" />
                                           </HBox>
                                        </value>
                                     </TreeItem>

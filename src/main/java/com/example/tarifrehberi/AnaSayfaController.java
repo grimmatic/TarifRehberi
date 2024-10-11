@@ -9,11 +9,9 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import java.net.URL;
 import java.sql.*;
@@ -113,8 +111,8 @@ public class AnaSayfaController implements Initializable{
             if (sort != null) {
                 switch (sort) {
                     case "-" -> query.append(" ORDER BY TarifID ASC");
-                    case "En Yavaş" -> query.append(" ORDER BY HazirlanmaSuresi DESC");
-                    case "En Çabuk" -> query.append(" ORDER BY HazirlanmaSuresi ASC");
+                    case "En Yavaş" -> query.append(" ORDER BY HazirlamaSuresi DESC");
+                    case "En Çabuk" -> query.append(" ORDER BY HazirlamaSuresi ASC");
                 }
             }
 
@@ -130,7 +128,7 @@ public class AnaSayfaController implements Initializable{
                 satir++;
                 String recipeName = rs.getString("TarifAdi");
                 String category = rs.getString("Kategori");
-                int preparationTime = rs.getInt("HazirlanmaSuresi");
+                int preparationTime = rs.getInt("HazirlamaSuresi");
                 String Tarif = rs.getString("Talimatlar");
                 int tarifID = rs.getInt("TarifID");
 
@@ -195,6 +193,8 @@ public class AnaSayfaController implements Initializable{
                 }
             }
 
+
+
            // rs.close();
            // stmt.close();
            // conn.close();
@@ -226,7 +226,7 @@ public class AnaSayfaController implements Initializable{
         nameLabel.setStyle("-fx-font-size: 26px; -fx-font-weight: bold;");
         Label categoryLabel = new Label("Kategori: " + category);
         categoryLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-        Label timeLabel = new Label("Hazırlanma Süresi: " + preparationTime + " dakika");
+        Label timeLabel = new Label("Hazırlama Süresi: " + preparationTime + " dakika");
         timeLabel.setStyle("-fx-font-size: 16px");
 
         Label instructionsLabel = new Label("Talimatlar");
