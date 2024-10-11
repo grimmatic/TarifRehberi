@@ -4,13 +4,16 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import java.net.URL;
 import java.sql.*;
@@ -20,6 +23,7 @@ import java.util.ResourceBundle;
 
 
 public class AnaSayfaController implements Initializable{
+
 
     @FXML
     private TextField arama;
@@ -33,14 +37,24 @@ public class AnaSayfaController implements Initializable{
     private VBox filterVBox;
     @FXML
     private TreeView<HBox> treeView;
+    @FXML
+    public Button treeviewButton;
     private Stage stage;
     private Scene scene;
     private Parent root;
+    int anchorYukeskligi = 0;
+    private Connection conn;
 
     Database db = new Database();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
+
+
+        connectToDatabase();
+        loadRecipes("");
+
+
 
         if (arama != null) {
             arama.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -49,7 +63,7 @@ public class AnaSayfaController implements Initializable{
                 }
             });
         }
-        loadRecipes("");
+
         arama.textProperty().addListener((observable, oldValue, newValue) -> loadRecipes(newValue));
 
         sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> loadRecipes(arama.getText()));
@@ -76,7 +90,7 @@ public class AnaSayfaController implements Initializable{
         }
 
         try {
-            Connection conn = DriverManager.getConnection("jdbc:sqlite:./identifier.sqlite");
+
             Statement stmt = conn.createStatement();
             StringBuilder query = new StringBuilder("SELECT * FROM Tarifler");
             boolean hasCondition = false;
@@ -135,6 +149,7 @@ public class AnaSayfaController implements Initializable{
                     rowConstraints.setPrefHeight(150.0);
                     recipeGrid.getRowConstraints().add(rowConstraints);
                     anchor.setPrefHeight(150*(int)Math.ceil((double)satir / 3));
+                    anchorYukeskligi = 150*(int)Math.ceil((double)satir / 3);
                 }
 
                 HBox buttonBox = new HBox(30);
@@ -172,26 +187,7 @@ public class AnaSayfaController implements Initializable{
                 recipeGrid.add(recipeBox, column, row);
               //  recipeGrid.setConstraints(recipeBox, column, row);
 
-                recipeBox.setOnMouseClicked(event -> {
-                    try {
-                        FXMLLoader loader = new FXMLLoader(getClass().getResource("TarifDetaylari.fxml"));
-                        Parent root = loader.load();
-
-                        TarifDetaylariController controller = loader.getController();
-                        controller.initialize(recipeName, category, preparationTime,Tarif);
-
-                        Stage stage = (Stage) recipeBox.getScene().getWindow();
-                        Scene scene = new Scene(root);
-                        stage.setScene(scene);
-                        stage.show();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-
-                    System.out.println("Tarif detayları: " + recipeName + ", " + category + ", " + preparationTime + " dakika");
-                });
-
+                recipeBox.setOnMouseClicked(event -> displayRecipeDetails(tarifID,recipeName, category, preparationTime, Tarif));
                 column++;
                 if (column == 3) {
                     column = 0;
@@ -207,6 +203,133 @@ public class AnaSayfaController implements Initializable{
         }
 
     }
+
+    private void displayRecipeDetails(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
+
+        recipeGrid.setVisible(false);
+
+
+        AnchorPane detailPane = new AnchorPane();
+        detailPane.setStyle("-fx-background-color: #FFFFFF;");
+        detailPane.setPadding(new Insets(20));
+
+
+        Image backgroundImage = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/recipebackground.jpg")));
+        ImageView backgroundImageView = new ImageView(backgroundImage);
+        backgroundImageView.setFitWidth(1000);
+        backgroundImageView.setFitHeight(615);
+      //  backgroundImageView.setPreserveRatio(true);
+        backgroundImageView.setOpacity(0.15);
+        detailPane.getChildren().add(backgroundImageView);
+
+        Label nameLabel = new Label(recipeName);
+        nameLabel.setStyle("-fx-font-size: 26px; -fx-font-weight: bold;");
+        Label categoryLabel = new Label("Kategori: " + category);
+        categoryLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        Label timeLabel = new Label("Hazırlanma Süresi: " + preparationTime + " dakika");
+        timeLabel.setStyle("-fx-font-size: 16px");
+
+        Label instructionsLabel = new Label("Talimatlar");
+        instructionsLabel.setStyle("-fx-font-size: 16px;-fx-font-weight: bold;");
+        instructionsLabel.setPadding(new Insets(100, 0, 0, 140));
+        Separator separator = new Separator();
+        separator.setPrefWidth(300);
+
+
+        Label instructionsLabel0 = new Label( instructions);
+        instructionsLabel0.setStyle("-fx-font-size: 14px;-fx-font-weight: bold;");
+        instructionsLabel0.setWrapText(true);
+        instructionsLabel0.setMaxWidth(350);
+
+        VBox vbox = new VBox(10, nameLabel, categoryLabel, timeLabel,instructionsLabel,separator,instructionsLabel0);
+        vbox.setPadding(new Insets(20));
+        
+        HBox buttonBox = new HBox(10);
+        buttonBox.setAlignment(Pos.CENTER);
+        
+        Button editButton = new Button();
+        editButton.setStyle("-fx-background-color:transparent;");
+        ImageView imageView0 = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/rewrite.png"))));
+        imageView0.setFitHeight(40);
+        imageView0.setFitWidth(40);
+        editButton.setMaxWidth(30);
+        editButton.setMaxHeight(30);
+        editButton.setGraphic(imageView0);
+
+        Button deleteButton = new Button();
+        deleteButton.setStyle("-fx-background-color:transparent;");
+        ImageView imageView1 = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/delete.png"))));
+        imageView1.setFitHeight(40);
+        imageView1.setFitWidth(40);
+        deleteButton.setMaxWidth(30);
+        deleteButton.setMaxHeight(30);
+        deleteButton.setGraphic(imageView1);
+
+        Button homeButton = new Button();
+        homeButton.setStyle("-fx-background-color:transparent;");
+        ImageView imageView2 = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/home.png"))));
+        imageView2.setFitHeight(40);
+        imageView2.setFitWidth(40);
+        homeButton.setMaxWidth(40);
+        homeButton.setMaxHeight(40);
+        homeButton.setGraphic(imageView2);
+
+
+        buttonBox.getChildren().addAll(editButton, deleteButton, homeButton);
+        vbox.getChildren().add(buttonBox);
+
+
+        homeButton.setOnAction(event -> {
+            anchor.setPrefHeight(anchorYukeskligi);
+            anchor.setMinHeight(anchorYukeskligi);
+            sortComboBox.setVisible(true);
+            arama.setVisible(true);
+            treeviewButton.setVisible(true);
+
+
+            anchor.getChildren().remove(detailPane);
+            loadRecipes(arama.getText());
+            recipeGrid.setVisible(true);
+        });
+
+
+        deleteButton.setOnAction(event -> {
+            db.deleteRecipe(conn, tarifID);
+            loadRecipes(arama.getText());
+            anchor.setPrefHeight(anchorYukeskligi);
+            anchor.setMinHeight(anchorYukeskligi);
+            sortComboBox.setVisible(true);
+            arama.setVisible(true);
+            treeviewButton.setVisible(true);
+            anchor.getChildren().remove(detailPane);
+            recipeGrid.setVisible(true);
+        });
+
+
+
+
+        detailPane.getChildren().add(vbox);
+
+        AnchorPane.setTopAnchor(detailPane, 0.0);
+        AnchorPane.setRightAnchor(detailPane, 0.0);
+        AnchorPane.setBottomAnchor(detailPane, 0.0);
+        AnchorPane.setLeftAnchor(detailPane, 0.0);
+
+        anchor.setPrefHeight(615);
+        anchor.setMinHeight(615);
+        anchor.setMaxHeight(615);
+        sortComboBox.setVisible(false);
+        arama.setVisible(false);
+        treeviewButton.setVisible(false);
+
+
+        anchor.getChildren().add(detailPane);
+    }
+
+
+
+
+
     @FXML
     private void handleTreeViewButtonAction(ActionEvent event) {
         filterVBox.setVisible(!filterVBox.isVisible());
@@ -254,7 +377,13 @@ public class AnaSayfaController implements Initializable{
         stage.show();
     }
 
-
+    private void connectToDatabase() {
+        try {
+            conn = DriverManager.getConnection("jdbc:sqlite:./identifier.sqlite");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
 
 }
