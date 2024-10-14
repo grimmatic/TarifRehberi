@@ -1,9 +1,7 @@
 package com.example.tarifrehberi;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Database {
 
@@ -75,7 +73,7 @@ public class Database {
                     ");";
 
             // Tarif-Malzeme
-            String createRecipeIngredientsTable = "CREATE TABLE IF NOT EXISTS TarifMalzemeleri (" +
+            String createRecipeIngredientsTable = "CREATE TABLE IF NOT EXISTS TarifMalzeme (" +
                     "TarifID INTEGER REFERENCES Tarifler(TarifID) ON DELETE CASCADE ON UPDATE CASCADE," + // Düzeltildi
                     "MalzemeID INTEGER REFERENCES Malzemeler(MalzemeID) ON DELETE CASCADE ON UPDATE CASCADE," + // Düzeltildi
                     "MalzemeMiktar FLOAT," +
@@ -95,8 +93,7 @@ public class Database {
         }
     }
 
-
-    public void addRecipe(Connection conn, String tarifAdi, String kategori, int hazirlamaSuresi, String talimatlar, Map<String, Float> malzemeler) {
+    public void addRecipe(Connection conn, String tarifAdi, String kategori, int hazirlamaSuresi, String talimatlar, Map<String, Map<String, Object>> malzemeler) {
         try {
             // Tarifi ekle
             String query = "INSERT INTO Tarifler (TarifAdi, Kategori, HazirlamaSuresi, Talimatlar) VALUES (?, ?, ?, ?)";
@@ -113,12 +110,14 @@ public class Database {
                 int tarifID = rs.getInt(1);
 
                 // Malzemeleri ekle
-                for (Map.Entry<String, Float> entry : malzemeler.entrySet()) {
+                for (Map.Entry<String, Map<String, Object>> entry : malzemeler.entrySet()) {
                     String malzemeAdi = entry.getKey();
-                    Float miktar = entry.getValue();
+                    Map<String, Object> malzemeDetay = entry.getValue();
+                    Float miktar = (Float) malzemeDetay.get("miktar");
+                    String birim = (String) malzemeDetay.get("birim");
 
                     // Malzeme var mı kontrol et yoksa ekle
-                    int malzemeID = getOrCreateIngredient(conn, malzemeAdi);
+                    int malzemeID = getOrCreateIngredient(conn, malzemeAdi, birim);
 
                     // Tarif Malzeme ilişkisini ekle
                     addRecipeIngredient(conn, tarifID, malzemeID, miktar);
@@ -131,36 +130,63 @@ public class Database {
     }
 
     // Malzeme ekleme veya mevcut malzemenin ID'sini almaca
-    public int getOrCreateIngredient(Connection conn, String malzemeAdi) {
+    public int getOrCreateIngredient(Connection conn, String malzemeAdi, String birim) {
+        String checkQuery = "SELECT MalzemeID FROM Malzemeler WHERE MalzemeAdi = ?";
+        String insertQuery = "INSERT INTO Malzemeler (MalzemeAdi, ToplamMiktar, MalzemeBirim, BirimFiyat) VALUES (?, 0, ?, 10.0)";
+
         try {
-            // Malzeme var mı kontrol et
-            String query = "SELECT MalzemeID FROM Malzemeler WHERE MalzemeAdi = ?";
-            PreparedStatement pstmt = conn.prepareStatement(query);
-            pstmt.setString(1, malzemeAdi); //querydeki "?" yerine malzemeAdi değerini yerleştir
-            ResultSet rs = pstmt.executeQuery(); //sonuclar resultset içinde saklanır
-            if (rs.next()) {//resultset içindeki sonraki kayda geç(malzemeadi db'de mevcutsa true)
-                return rs.getInt("MalzemeID"); // Malzeme mevcutsa ID'sini döndür
+            // Önce malzemenin var olup olmadığını kontrol et
+            PreparedStatement checkStmt = conn.prepareStatement(checkQuery);
+            checkStmt.setString(1, malzemeAdi);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (rs.next()) {
+                // Malzeme zaten var, ID'sini döndür
+                int malzemeId = rs.getInt("MalzemeID");
+                System.out.println("Mevcut malzeme bulundu. MalzemeID: " + malzemeId);
+                return malzemeId;
             } else {
-                // Malzeme yoksa ekle
-                query = "INSERT INTO Malzemeler (MalzemeAdi) VALUES (?)";
-                pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS); //yeni eklenen kaydın otomatik kaydını (malzemeID) almak için
-                pstmt.setString(1, malzemeAdi);
-                pstmt.executeUpdate();
-                rs = pstmt.getGeneratedKeys(); //eklenen malzemenin idsini almaca
-                if (rs.next()) {
-                    return rs.getInt(1); // Yeni eklenen malzemenin ID'sini döndür
+                // Malzeme yok, yeni ekle
+                PreparedStatement insertStmt = conn.prepareStatement(insertQuery, Statement.RETURN_GENERATED_KEYS);
+                insertStmt.setString(1, malzemeAdi);
+                insertStmt.setString(2, birim);
+                int affectedRows = insertStmt.executeUpdate();
+
+                if (affectedRows == 0) {
+                    throw new SQLException("Malzeme oluşturulamadı, hiçbir satır etkilenmedi.");
                 }
+
+                try (ResultSet generatedKeys = insertStmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        int newMalzemeId = generatedKeys.getInt(1);
+                        System.out.println("Yeni malzeme eklendi. MalzemeID: " + newMalzemeId);
+                        return newMalzemeId;
+                    } else {
+                        // Eğer ID alınamazsa, son eklenen malzemenin ID'sini manuel olarak al
+                        String lastInsertIdQuery = "SELECT last_insert_rowid() as last_id";
+                        try (Statement stmt = conn.createStatement();
+                             ResultSet lastIdRs = stmt.executeQuery(lastInsertIdQuery)) {
+                            if (lastIdRs.next()) {
+                                int lastId = lastIdRs.getInt("last_id");
+                                System.out.println("Son eklenen malzeme ID'si manuel olarak alındı: " + lastId);
+                                return lastId;
+                            }
+                        }
+                    }
+                }
+                throw new SQLException("Malzeme oluşturuldu ancak ID alınamadı.");
             }
-        } catch (Exception e) {
-            System.out.println(e);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("SQL Hatası: " + e.getMessage());
         }
-        return -1; //işlem başarısız oldu malzeme id alınamadı
+        return -1; // Hata durumunda
     }
 
     // Tarif-Malzeme ilişkisi eklemece yaani bir tarifin hangi malzemeden ne kadar içerdiğini
     public void addRecipeIngredient(Connection conn, int tarifID, int malzemeID, float miktar) {
         try {
-            String query = "INSERT INTO TarifMalzemeleri (TarifID, MalzemeID, MalzemeMiktar) VALUES (?, ?, ?)";
+            String query = "INSERT INTO TarifMalzeme (TarifID, MalzemeID, MalzemeMiktar) VALUES (?, ?, ?)";
             PreparedStatement pstmt = conn.prepareStatement(query);
             //preperadstatement avantajları :
             // Performans: Sorgular önceden derlenmiş olduğundan performans açısından daha iyidir.
@@ -180,7 +206,7 @@ public class Database {
             // Tüm tarifleri ve malzemelerini al
             String query = "SELECT t.TarifID, t.TarifAdi, tm.MalzemeID, tm.MalzemeMiktar, m.ToplamMiktar, m.BirimFiyat " +
                     "FROM Tarifler t " +
-                    "JOIN TarifMalzemeleri tm ON t.TarifID = tm.TarifID " +
+                    "JOIN TarifMalzeme tm ON t.TarifID = tm.TarifID " +
                     "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID";
             PreparedStatement pstmt = conn.prepareStatement(query);
             ResultSet rs = pstmt.executeQuery();
@@ -224,7 +250,7 @@ public class Database {
     // DatabaseHelper sınıfı içinde tarifin malzemelerini almak için bir metot
     public List<String> getIngredientsByRecipeId(Connection conn, int recipeId) {
         List<String> ingredients = new ArrayList<>();
-        String sql = "SELECT MalzemeAdi FROM TarifMalzemeleri mt " +
+        String sql = "SELECT MalzemeAdi FROM TarifMalzeme mt " +
                 "JOIN Malzemeler m ON mt.MalzemeID = m.MalzemeID " +
                 "WHERE mt.TarifID = ?";
 
@@ -243,31 +269,83 @@ public class Database {
 
 
     // DatabaseHelper sınıfı içinde tarifin malzemelerini güncellemek için bir metot
-    public void updateRecipeIngredients(Connection conn, int recipeId, List<String> ingredients) {
-        // İlk olarak, mevcut malzemeleri sil
-        String deleteSql = "DELETE FROM TarifMalzemeleri WHERE TarifID = ?";
-
-        try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
-            deleteStmt.setInt(1, recipeId);
-            deleteStmt.executeUpdate();
-
-            // Yeni malzemeleri ekle
-            String insertSql = "INSERT INTO TarifMalzemeleri (TarifID, MalzemeID) VALUES (?, ?)";
-            PreparedStatement insertStmt = conn.prepareStatement(insertSql);
-
-            for (String ingredientName : ingredients) {
-                int ingredientId = getOrCreateIngredient(conn, ingredientName);
-                if (ingredientId != -1) {
-                    insertStmt.setInt(1, recipeId);
-                    insertStmt.setInt(2, ingredientId);
-                    insertStmt.executeUpdate();
+    public void updateRecipeIngredients(Connection conn, int recipeId, List<Map<String, Object>> ingredients) {
+        try {
+            Map<String, Integer> existingIngredients = new HashMap<>();
+            String selectSql = "SELECT m.MalzemeID, m.MalzemeAdi FROM TarifMalzeme tm JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID WHERE tm.TarifID = ?";
+            try (PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+                selectStmt.setInt(1, recipeId);
+                ResultSet rs = selectStmt.executeQuery();
+                while (rs.next()) {
+                    existingIngredients.put(rs.getString("MalzemeAdi"), rs.getInt("MalzemeID"));
                 }
+            }
+
+
+            String upsertSql = "INSERT INTO TarifMalzeme (TarifID, MalzemeID, MalzemeMiktar) VALUES (?, ?, ?) ON CONFLICT (TarifID, MalzemeID) DO UPDATE SET MalzemeMiktar = ?";
+            try (PreparedStatement upsertStmt = conn.prepareStatement(upsertSql)) {
+                for (Map<String, Object> ingredient : ingredients) {
+                    String ingredientName = (String) ingredient.get("name");
+                    double amount = (double) ingredient.get("amount");
+                    String unit = (String) ingredient.get("unit");
+
+                    int ingredientId = existingIngredients.getOrDefault(ingredientName, -1);
+                    if (ingredientId == -1) {
+                        ingredientId = getOrCreateIngredient(conn, ingredientName, unit);
+                    }
+
+                    upsertStmt.setInt(1, recipeId);
+                    upsertStmt.setInt(2, ingredientId);
+                    upsertStmt.setDouble(3, amount);
+                    upsertStmt.setDouble(4, amount);
+                    upsertStmt.addBatch();
+                }
+                upsertStmt.executeBatch();
+            }
+
+
+            Set<String> updatedIngredientNames = ingredients.stream().map(i -> (String)i.get("name")).collect(Collectors.toSet());
+            String deleteSql = "DELETE FROM TarifMalzeme WHERE TarifID = ? AND MalzemeID = ?";
+            try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                for (Map.Entry<String, Integer> entry : existingIngredients.entrySet()) {
+                    if (!updatedIngredientNames.contains(entry.getKey())) {
+                        deleteStmt.setInt(1, recipeId);
+                        deleteStmt.setInt(2, entry.getValue());
+                        deleteStmt.addBatch();
+                    }
+                }
+                deleteStmt.executeBatch();
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
+    public List<String> getIngredientDetailsForRecipe(Connection conn, int tarifID) {
+        List<String> ingredientDetails = new ArrayList<>();
+        String query = "SELECT m.MalzemeAdi, tm.MalzemeMiktar, m.MalzemeBirim " +
+                "FROM TarifMalzeme tm " +
+                "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
+                "WHERE tm.TarifID = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, tarifID);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String malzemeAdi = rs.getString("MalzemeAdi");
+                double miktar = rs.getDouble("MalzemeMiktar");
+                String birim = rs.getString("MalzemeBirim");
+
+                String detail = String.format("%s - %.2f %s", malzemeAdi, miktar, birim);
+                ingredientDetails.add(detail);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return ingredientDetails;
+    }
 
     // Tarifi adına veya adının parçasına göre arama
     public void searchRecipeByName(Connection conn, String tarifAdi) {
@@ -289,8 +367,8 @@ public class Database {
         try {
             String query = "SELECT t.TarifID, t.TarifAdi, COUNT(tm.MalzemeID) AS MalzemeSayisi " +
                     "FROM Tarifler t " +
-                    "JOIN TarifMalzemeleri tm ON t.TarifID = tm.TarifID " + //Tarifler ve TarifMalzemeleri tablolarını TarifID üzerinden birleştirir. Böylece her tarifin içerdiği malzemelere erişilir.
-                    "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " + //TarifMalzemeleri ve Malzemeler tablolarını MalzemeID üzerinden birleştirir. Böylece malzemelerin adlarıyla işlem yapılabilir.
+                    "JOIN TarifMalzeme tm ON t.TarifID = tm.TarifID " + //Tarifler ve TarifMalzeme tablolarını TarifID üzerinden birleştirir. Böylece her tarifin içerdiği malzemelere erişilir.
+                    "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " + //TarifMalzeme ve Malzemeler tablolarını MalzemeID üzerinden birleştirir. Böylece malzemelerin adlarıyla işlem yapılabilir.
                     "WHERE m.MalzemeAdi = ANY (?) " + //Kullanıcının belirttiği malzemelerden herhangi birinin tarife dahil olup olmadığını kontrol eder.
                     "GROUP BY t.TarifID, t.TarifAdi " + //Tarif bazında gruplandırma yapar. Aynı tarifteki malzeme eşleşmelerini tek bir sonuç olarak toplar.
                     "ORDER BY MalzemeSayisi DESC"; //MalzemeSayisi değerine göre tarifleri azalan sırayla sıralar. Yani, en çok eşleşen malzemeye sahip tarifler ilk sırada gelir.
@@ -334,7 +412,7 @@ public class Database {
         try {
             String query = "SELECT t.TarifID, t.TarifAdi, SUM(tm.MalzemeMiktar * m.BirimFiyat) AS ToplamMaliyet " +
                     "FROM Tarifler t " +
-                    "JOIN TarifMalzemeleri tm ON t.TarifID = tm.TarifID " +
+                    "JOIN TarifMalzeme tm ON t.TarifID = tm.TarifID " +
                     "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
                     "GROUP BY t.TarifID, t.TarifAdi " +
                     "ORDER BY ToplamMaliyet " + (ascending ? "ASC" : "DESC");
@@ -353,7 +431,7 @@ public class Database {
         try {
             String query = "SELECT t.TarifID, t.TarifAdi, COUNT(tm.MalzemeID) AS MalzemeSayisi " +
                     "FROM Tarifler t " +
-                    "JOIN TarifMalzemeleri tm ON t.TarifID = tm.TarifID " +
+                    "JOIN TarifMalzeme tm ON t.TarifID = tm.TarifID " +
                     "GROUP BY t.TarifID, t.TarifAdi " +
                     "ORDER BY MalzemeSayisi " + (ascending ? "ASC" : "DESC");
             PreparedStatement pstmt = conn.prepareStatement(query);
@@ -386,7 +464,7 @@ public class Database {
         try {
             String query = "SELECT t.TarifID, t.TarifAdi, SUM(tm.MalzemeMiktar * m.BirimFiyat) AS ToplamMaliyet " +
                     "FROM Tarifler t " +
-                    "JOIN TarifMalzemeleri tm ON t.TarifID = tm.TarifID " +
+                    "JOIN TarifMalzeme tm ON t.TarifID = tm.TarifID " +
                     "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
                     "GROUP BY t.TarifID, t.TarifAdi " +
                     "HAVING SUM(tm.MalzemeMiktar * m.BirimFiyat) BETWEEN ? AND ?";
@@ -475,5 +553,55 @@ public class Database {
             System.out.println(e);
         }
         return false;
-    }}
+    }
+
+
+
+    public void deleteIngredientFromRecipe(Connection conn, int tarifID, String malzemeAdi) {
+        String query = "DELETE FROM TarifMalzeme WHERE TarifID = ? AND MalzemeID = (SELECT MalzemeID FROM Malzemeler WHERE MalzemeAdi = ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, tarifID);
+            pstmt.setString(2, malzemeAdi);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addIngredientToRecipe(Connection conn, int tarifID, int malzemeID, double miktar) {
+        String query = "INSERT INTO TarifMalzeme (TarifID, MalzemeID, MalzemeMiktar) VALUES (?, ?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, tarifID);
+            pstmt.setInt(2, malzemeID);
+            pstmt.setDouble(3, miktar);
+            int affectedRows = pstmt.executeUpdate();
+
+            System.out.println("TarifMalzeme ekleme sonucu: " + affectedRows + " satır etkilendi.");
+
+            if (affectedRows == 0) {
+                throw new SQLException("Malzeme tarife eklenemedi, hiçbir satır etkilenmedi.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("TarifMalzeme ekleme hatası: " + e.getMessage());
+        }
+    }
+
+    private void updateIngredientUnit(Connection conn, int malzemeID, String birim) {
+        String query = "UPDATE Malzemeler SET MalzemeBirim = ? WHERE MalzemeID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, birim);
+            pstmt.setInt(2, malzemeID);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+}
+
+
 
