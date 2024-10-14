@@ -16,8 +16,9 @@ public class TarifDetaylariController {
     @FXML
     private Label tarif;
 
-    public void initialize(String recipeName, String category, int preparationTime, String Tarif) {
-        recipeNameLabel.setText(recipeName);
+    public void initialize(String recipeName, String category, int preparationTime, String Tarif) {//Tarif detayları sayfası yüklendiğinde çağrılır. Gelen parametreleri ilgili etiketlere atar.
+
+        recipeNameLabel.setText(recipeName);//Tarif adını etiket üzerine yazar.
         categoryLabel.setText("Kategori: " + category);
         preparationTimeLabel.setText("Hazırlama Süresi: " + preparationTime + " dakika");
         tarif.setText(Tarif);

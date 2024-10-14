@@ -9,13 +9,13 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.util.Objects;
 
-public class TarifRehberi extends Application {
+public class TarifRehberi extends Application {//Application sınıfından türetilmiştir, bu da sınıfın bir JavaFX uygulaması olduğunu belirtir. JavaFX uygulamaları bu sınıftan türemelidir.
 
 @FXML
 
 
     @Override
-    public void start(Stage stage) throws IOException {
+    public void start(Stage stage) throws IOException { //start Metodu: JavaFX uygulamasının başlangıç noktasıdır. Uygulama çalıştığında, bu metod çağrılır.
         FXMLLoader fxmlLoader = new FXMLLoader(TarifRehberi.class.getResource("AnaSayfa.fxml"));
         Parent root = fxmlLoader.load();
         Scene scene = new Scene(root, 1280, 720);
@@ -31,6 +31,7 @@ public class TarifRehberi extends Application {
 
 }
     public static void main(String[] args) {
-        launch();
+
+    launch();//launch() metodu, JavaFX uygulamasını başlatmak için kullanılır ve start metodunu çağırır.
     }
 }

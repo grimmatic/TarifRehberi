@@ -1,4 +1,6 @@
 package com.example.tarifrehberi;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,6 +17,8 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
@@ -50,7 +54,14 @@ public class AnaSayfaController implements Initializable{
 
 
         connectToDatabase();
-        loadRecipes("");
+        db.createTable(conn);
+        loadRecipes(""); // Başlangıçta tüm tarifleri yükler.
+        // Boş bir arama terimi geçirildiği için,
+        // veritabanından mevcut olan tüm tarifler alınır
+        // ve arayüzde görüntülenir.
+        // Bu, kullanıcı uygulamayı başlattığında
+        // hemen tarifleri görmesini sağlar.
+
 
 
 
@@ -62,11 +73,11 @@ public class AnaSayfaController implements Initializable{
             });
         }
 
-        arama.textProperty().addListener((observable, oldValue, newValue) -> loadRecipes(newValue));
+        arama.textProperty().addListener((observable, oldValue, newValue) -> loadRecipes(newValue)); // Kullanıcı arama alanına metin girdiğinde (veya metni değiştirdiğinde), loadRecipes(newValue) metodu çağrılır. Bu, veritabanındaki tariflerin arama terimine göre güncellenmesini sağlar. Örneğin, kullanıcı "pasta" yazarsa, yalnızca pasta tarifleri yüklenir.
 
-        sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> loadRecipes(arama.getText()));
+        sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> loadRecipes(arama.getText())); //sıralam kutucugu, en kısa en yavaş vs
 
-        for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) {
+        for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) { //kategoriye göre arama
             HBox hBox = categoryItem.getValue();
             CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
             checkBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
@@ -77,6 +88,8 @@ public class AnaSayfaController implements Initializable{
 
 
     }
+
+
 
     private void loadRecipes(String search) {
         int satir=0;
@@ -118,7 +131,7 @@ public class AnaSayfaController implements Initializable{
 
 
 
-         //   recipeGrid.getRowConstraints().clear();
+            //   recipeGrid.getRowConstraints().clear();
             ResultSet rs = stmt.executeQuery(query.toString());
             recipeGrid.getChildren().clear();
             int row = 0;
@@ -132,7 +145,7 @@ public class AnaSayfaController implements Initializable{
                 String Tarif = rs.getString("Talimatlar");
                 int tarifID = rs.getInt("TarifID");
 
-
+                //tarifleri görselleştirmece
                 Label nameLabel = new Label(recipeName);
                 nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
                 Label categoryLabel = new Label(category);
@@ -173,19 +186,23 @@ public class AnaSayfaController implements Initializable{
                 updateButton.setPadding(new Insets(25, 0, 0, 0));
 
 
-                deleteButton.setOnAction(event -> {
+
+
+
+                deleteButton.setOnAction(event -> { //delete butonuna tıklandıgında sil
                     db.deleteRecipe(conn, tarifID);
                     loadRecipes(arama.getText());
                 });
 
+                updateButton.setOnAction(event -> showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif));
 
 
                 buttonBox.getChildren().addAll(updateButton, deleteButton);
                 recipeBox.getChildren().add(buttonBox);
                 recipeGrid.add(recipeBox, column, row);
-              //  recipeGrid.setConstraints(recipeBox, column, row);
+                //  recipeGrid.setConstraints(recipeBox, column, row);
 
-                recipeBox.setOnMouseClicked(event -> displayRecipeDetails(tarifID,recipeName, category, preparationTime, Tarif));
+                recipeBox.setOnMouseClicked(event -> displayRecipeDetails(tarifID,recipeName, category, preparationTime, Tarif)); //tarife tıklandıgında detay cıksın
                 column++;
                 if (column == 3) {
                     column = 0;
@@ -195,9 +212,9 @@ public class AnaSayfaController implements Initializable{
 
 
 
-           // rs.close();
-           // stmt.close();
-           // conn.close();
+            // rs.close();
+            // stmt.close();
+            // conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -206,7 +223,8 @@ public class AnaSayfaController implements Initializable{
 
     private void displayRecipeDetails(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
 
-        recipeGrid.setVisible(false);
+        recipeGrid.setVisible(false);//Mevcut tariflerin bulunduğu ızgarayı (grid) görünmez hale getirir.
+        // Böylece tarif detayları görünür olduğunda mevcut tarifler gizlenmiş olur.
 
 
         AnchorPane detailPane = new AnchorPane();
@@ -218,7 +236,7 @@ public class AnaSayfaController implements Initializable{
         ImageView backgroundImageView = new ImageView(backgroundImage);
         backgroundImageView.setFitWidth(1000);
         backgroundImageView.setFitHeight(615);
-      //  backgroundImageView.setPreserveRatio(true);
+        //  backgroundImageView.setPreserveRatio(true);
         backgroundImageView.setOpacity(0.15);
         detailPane.getChildren().add(backgroundImageView);
 
@@ -243,10 +261,10 @@ public class AnaSayfaController implements Initializable{
 
         VBox vbox = new VBox(10, nameLabel, categoryLabel, timeLabel,instructionsLabel,separator,instructionsLabel0);
         vbox.setPadding(new Insets(20));
-        
+
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
-        
+
         Button editButton = new Button();
         editButton.setStyle("-fx-background-color:transparent;");
         ImageView imageView0 = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/rewrite.png"))));
@@ -279,7 +297,9 @@ public class AnaSayfaController implements Initializable{
         vbox.getChildren().add(buttonBox);
 
 
-        homeButton.setOnAction(event -> {
+        homeButton.setOnAction(event -> { //Bu butona tıklandığında, detayları gösteren detailPane kaldırılır
+            // ve tariflerin listesi yeniden yüklenir.
+            // Ayrıca diğer arayüz bileşenleri görünür hale gelir.
             anchor.setPrefHeight(anchorYukeskligi);
             anchor.setMinHeight(anchorYukeskligi);
             sortComboBox.setVisible(true);
@@ -292,8 +312,22 @@ public class AnaSayfaController implements Initializable{
             recipeGrid.setVisible(true);
         });
 
+        editButton.setOnAction(event -> {
+            showUpdateDialog(tarifID, recipeName, category, preparationTime, instructions);
+            // Detay görünümünden çıkış ve listeyi tekrar yüklemek için:
+            anchor.setPrefHeight(anchorYukeskligi);
+            anchor.setMinHeight(anchorYukeskligi);
+            sortComboBox.setVisible(true);
+            arama.setVisible(true);
+            treeviewButton.setVisible(true);
+            anchor.getChildren().remove(detailPane);
+            recipeGrid.setVisible(true);
+        });
 
-        deleteButton.setOnAction(event -> {
+
+
+        deleteButton.setOnAction(event -> { //Silme İşlemi: Bu butona tıklandığında,
+            // tarif veritabanından silinir ve tariflerin listesi yeniden yüklenir.
             db.deleteRecipe(conn, tarifID);
             loadRecipes(arama.getText());
             anchor.setPrefHeight(anchorYukeskligi);
@@ -335,7 +369,7 @@ public class AnaSayfaController implements Initializable{
         filterVBox.setVisible(!filterVBox.isVisible());
     }
 
-    private String getSelectedCategories() {
+    private String getSelectedCategories() { //kullanıcı tarafından seçilen kategorileri almak için kullanılır.
         StringBuilder categories = new StringBuilder();
 
         for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) {
@@ -376,6 +410,125 @@ public class AnaSayfaController implements Initializable{
         stage.setScene(scene);
         stage.show();
     }
+
+    private void showUpdateDialog(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
+        // Güncelleme için bir dialog oluştur
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Tarifi Güncelle");
+
+        // Resmi oluştur
+        Image image = new Image(getClass().getResourceAsStream("/icons/rewrite.png"));
+        ImageView imageView2 = new ImageView(image);
+        imageView2.setFitWidth(50);
+        imageView2.setFitHeight(40);
+
+        // Özelleştirilmiş bir header Label'ı oluştur
+        Label headerLabel = new Label("Tarifi güncellemek için bilgileri girin:");
+        headerLabel.setStyle("-fx-background-color: #7a1e9c; -fx-text-fill: white; -fx-padding: 10; -fx-font-size: 16px;");
+        headerLabel.setAlignment(Pos.CENTER);
+
+        // Resmi sağa kaydırmak için bir Region ekleyin
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Header kısmına hem metni, hem boşluğu hem de resmi koymak için HBox kullanın
+        HBox header = new HBox(10);
+        header.getChildren().addAll(headerLabel, spacer, imageView2);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.setStyle("-fx-background-color: #7a1e9c; -fx-padding: 10;");
+        header.setMaxWidth(Double.MAX_VALUE);
+
+        // Dialog'un header alanına bu HBox'ı ekleyin
+        dialog.getDialogPane().setHeader(header);
+
+        // Dialog arka plan rengini mor yap
+        dialog.getDialogPane().setStyle("-fx-background-color: #efe3f2;");
+
+        // Tarifi düzenlemek için alanlar
+        TextField nameField = new TextField(recipeName);
+        ComboBox<String> categoryComboBox = new ComboBox<>();
+
+        // Kategorileri veritabanından çekme ve ComboBox'a ekleme
+        List<String> categories = db.getCategoriesFromRecipes(conn);
+        categoryComboBox.getItems().addAll(categories);
+        categoryComboBox.setValue(category); // Mevcut kategoriyi seçili olarak ayarlayın
+
+        TextField preparationTimeField = new TextField(String.valueOf(preparationTime));
+        TextArea instructionsField = new TextArea(instructions);
+
+        // Malzemeler için ListView ve düğmeler
+        ListView<String> ingredientsListView = new ListView<>();
+        ingredientsListView.setPrefHeight(150); // Yükseklik belirlemek için
+
+        // Malzemeleri tarifID'ye göre doldurma
+        List<String> ingredients = db.getIngredientsByRecipeId(conn, tarifID);
+        ingredientsListView.getItems().addAll(ingredients);
+
+        // Malzeme eklemek için alan
+        TextField ingredientField = new TextField();
+        ingredientField.setPromptText("Yeni malzeme ekle");
+
+        Button addIngredientButton = new Button("Malzeme Ekle");
+        addIngredientButton.setOnAction(e -> {
+            String newIngredient = ingredientField.getText().trim();
+            if (!newIngredient.isEmpty()) {
+                // Malzeme ID'sini almak için getOrCreateIngredient metodunu çağır
+                int ingredientId = db.getOrCreateIngredient(conn, newIngredient);
+                if (ingredientId != -1) { // Malzeme başarıyla alındı veya eklendi
+                    ingredientsListView.getItems().add(newIngredient);
+                    ingredientField.clear();
+                }
+            }
+        });
+
+        Button removeIngredientButton = new Button("Seçili Malzemeyi Sil");
+        removeIngredientButton.setOnAction(e -> {
+            String selectedIngredient = ingredientsListView.getSelectionModel().getSelectedItem();
+            if (selectedIngredient != null) {
+                ingredientsListView.getItems().remove(selectedIngredient);
+                // Seçilen malzeme silindiğinde veritabanından silme işlemi yapılabilir
+                db.deleteRecipe(conn, tarifID);
+            }
+        });
+
+        HBox ingredientButtons = new HBox(10, ingredientField, addIngredientButton, removeIngredientButton);
+
+        // Layout düzeni için VBox
+        VBox vbox = new VBox(10);
+        vbox.getChildren().addAll(
+                new Label("Tarif Adı:"), nameField,
+                new Label("Kategori:"), categoryComboBox,
+                new Label("Hazırlama Süresi (dakika):"), preparationTimeField,
+                new Label("Talimatlar:"), instructionsField,
+                new Label("Malzemeler:"), ingredientsListView, ingredientButtons
+        );
+        dialog.getDialogPane().setContent(vbox);
+
+        // Dialog'a butonlar ekle
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        // Kullanıcı 'OK' butonuna tıklarsa işlemi gerçekleştirme
+        dialog.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // Kullanıcıdan alınan yeni veriler
+                String newName = nameField.getText();
+                String newCategory = categoryComboBox.getValue();
+                int newPreparationTime = Integer.parseInt(preparationTimeField.getText());
+                String newInstructions = instructionsField.getText();
+                List<String> updatedIngredients = new ArrayList<>(ingredientsListView.getItems());
+
+                // Veritabanında güncelleme yap
+                db.updateRecipe(conn, tarifID, newName, newCategory, newPreparationTime, newInstructions);
+                db.updateRecipeIngredients(conn, tarifID, updatedIngredients);
+
+                // Güncelleme sonrası tarif listesini yeniden yükle
+                loadRecipes(arama.getText());
+            }
+        });
+    }
+
+
+
 
     private void connectToDatabase() {
         try {
