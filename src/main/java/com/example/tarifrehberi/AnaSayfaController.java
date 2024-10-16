@@ -31,7 +31,7 @@ public class AnaSayfaController implements Initializable{
     @FXML
     private GridPane recipeGrid;
     @FXML
-    private AnchorPane anchor;
+    private  AnchorPane anchor;
     @FXML
     private ComboBox<String> sortComboBox;
     @FXML
@@ -45,8 +45,12 @@ public class AnaSayfaController implements Initializable{
     private Parent root;
     int anchorYukeskligi = 0;
     private Connection conn;
+    private UpdateController updateController;
+    private TarifEkle tarifEkle;
+
 
     Database db = new Database();
+
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -59,6 +63,9 @@ public class AnaSayfaController implements Initializable{
         // ve arayüzde görüntülenir.
         // Bu, kullanıcı uygulamayı başlattığında
         // hemen tarifleri görmesini sağlar.
+        updateController = new UpdateController(conn, db);
+        tarifEkle = new TarifEkle(db, conn);
+
 
 
 
@@ -82,6 +89,13 @@ public class AnaSayfaController implements Initializable{
                 loadRecipes(arama.getText());
             });
         }
+
+
+        tarifEkle = new TarifEkle(db, conn);
+        tarifEkle.setOnRecipeAddedCallback(() -> {
+            showToast("Yeni tarif başarıyla eklendi.");
+            loadRecipes(arama.getText());
+        });
 
 
 
@@ -192,7 +206,16 @@ public class AnaSayfaController implements Initializable{
                     loadRecipes(arama.getText());
                 });
 
-                updateButton.setOnAction(event -> showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif));
+                //updateButton.setOnAction(event -> showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif));
+                updateButton.setOnAction(event -> {
+                    // Butona basıldığında dialogu göster
+                    updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif);
+                    updateController.setOnRecipeUpdatedCallback(() -> {
+                        showToast("Tarif başarıyla güncellendi.");
+                        loadRecipes(arama.getText());
+                    });
+
+                });
 
 
                 buttonBox.getChildren().addAll(updateButton, deleteButton);
@@ -220,6 +243,9 @@ public class AnaSayfaController implements Initializable{
     }
 
     private void displayRecipeDetails(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
+        UpdateController updateController = new UpdateController(conn, db); // Burada doğru bağlantıyı sağlayın.
+
+
 
         recipeGrid.setVisible(false);//Mevcut tariflerin bulunduğu ızgarayı (grid) görünmez hale getirir.
         // Böylece tarif detayları görünür olduğunda mevcut tarifler gizlenmiş olur.
@@ -310,8 +336,24 @@ public class AnaSayfaController implements Initializable{
             recipeGrid.setVisible(true);
         });
 
+//        editButton.setOnAction(event -> {
+//            showUpdateDialog(tarifID, recipeName, category, preparationTime, instructions);
+
         editButton.setOnAction(event -> {
-            showUpdateDialog(tarifID, recipeName, category, preparationTime, instructions);
+            // UpdateController'daki showUpdateDialog metodunu çağır
+            updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, instructions);
+            loadRecipes(arama.getText());
+
+
+
+
+
+
+
+
+
+
+
             // Detay görünümünden çıkış ve listeyi tekrar yüklemek için:
             anchor.setPrefHeight(anchorYukeskligi);
             anchor.setMinHeight(anchorYukeskligi);
@@ -385,212 +427,13 @@ public class AnaSayfaController implements Initializable{
         return categories.length() > 0 ? categories.toString() : null;
     }
 
-   /* public void switchToAnaSayfa(ActionEvent event) throws Exception {
-        root = FXMLLoader.load(getClass().getResource("AnaSayfa.fxml"));
-        stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
-    }*/
 
-    public void switchToTarifEkle(ActionEvent event) throws Exception {
-        root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("TarifEkle.fxml")));
-        stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        scene = new Scene(root);
-        stage.setScene(scene);
-        stage.show();
+    @FXML
+    private void handleAddRecipe() {
+        tarifEkle.showAddRecipeDialog();
     }
 
-    private void showUpdateDialog(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
-        // Güncelleme için bir dialog oluştur
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Tarifi Güncelle");
 
-        // Resmi oluştur
-        Image image = new Image(getClass().getResourceAsStream("/icons/rewrite.png"));
-        ImageView imageView2 = new ImageView(image);
-        imageView2.setFitWidth(40);
-        imageView2.setFitHeight(40);
-
-        // Özelleştirilmiş bir header Label'ı oluştur
-        Label headerLabel = new Label("Tarifi güncellemek için bilgileri girin:");
-        headerLabel.setStyle("-fx-background-color: #7a1e9c; -fx-text-fill: white; -fx-padding: 10; -fx-font-size: 16px;");
-        headerLabel.setAlignment(Pos.CENTER);
-
-        // Resmi sağa kaydırmak için bir Region ekleyin
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        //dialog.getDialogPane().setPrefWidth(1000);
-
-        // Header kısmına hem metni, hem boşluğu hem de resmi koymak için HBox kullanın
-        HBox header = new HBox(10);
-        header.getChildren().addAll(headerLabel, spacer, imageView2);
-        header.setAlignment(Pos.CENTER_LEFT);
-        header.setStyle("-fx-background-color: #7a1e9c; -fx-padding: 10;");
-        header.setMaxWidth(Double.MAX_VALUE);
-
-        // Dialog'un header alanına bu HBox'ı ekleyin
-        dialog.getDialogPane().setHeader(header);
-
-        // Dialog arka plan rengini mor yap
-        dialog.getDialogPane().setStyle("-fx-background-color: #efe3f2;");
-
-        // Tarifi düzenlemek için alanlar
-        TextField recipeNameField = new TextField(recipeName);
-        ComboBox<String> categoryComboBox = new ComboBox<>();
-
-        // Kategorileri veritabanından çekme ve ComboBox'a ekleme
-        List<String> categories = db.getCategoriesFromRecipes(conn);
-        categoryComboBox.getItems().addAll(categories);
-        categoryComboBox.setValue(category); // Mevcut kategoriyi seçili olarak ayarlayın
-
-        TextField preparationTimeField = new TextField(String.valueOf(preparationTime));
-        TextArea instructionsField = new TextArea(formatInstructions(instructions));
-
-        // Malzemeler için ListView ve düğmeler
-        ListView<HBox> ingredientsListView = new ListView<>();
-        ingredientsListView.setPrefHeight(150); // Yükseklik belirlemek için
-
-        List<String> ingredientDetails = db.getIngredientDetailsForRecipe(conn, tarifID);
-        for (String detail : ingredientDetails) {
-            String[] parts = detail.split(" - ");
-            String name = parts[0];
-            String[] amountParts = parts[1].split(" ");
-            String amount = amountParts[0];
-            String unit = amountParts[1];
-
-            TextField ingredientNameField = new TextField(name);
-            ingredientNameField.setEditable(false);
-            TextField ingredientAmountField = new TextField(amount);
-            Label ingredientUnitLabel = new Label(unit);
-
-            HBox hbox = new HBox(5, ingredientNameField, ingredientAmountField, ingredientUnitLabel);
-            ingredientsListView.getItems().add(hbox);
-        }
-
-        TextField newIngredientField = new TextField();
-        newIngredientField.setPromptText("Yeni malzeme ekle");
-
-        TextField newAmountField = new TextField();
-        newAmountField.setPromptText("Miktar");
-
-        ComboBox<String> newUnitComboBox = new ComboBox<>();
-        newUnitComboBox.getItems().addAll("adet", "kilogram", "litre");
-        newUnitComboBox.setPromptText("Birim seçin");
-
-        Button addIngredientButton = new Button("Malzeme Ekle");
-        addIngredientButton.setOnAction(e -> {
-            String newIngredient = newIngredientField.getText().trim();
-            String amountText = newAmountField.getText().trim().replace(',', '.');
-            String selectedUnit = newUnitComboBox.getValue();
-
-            if (newIngredient.isEmpty() || amountText.isEmpty() || selectedUnit == null) {
-                showToastInDialog("Lütfen tüm alanları doldurun.",dialog);
-                return;
-            }
-
-            boolean isDuplicate = ingredientsListView.getItems().stream()
-                    .anyMatch(hbox -> ((TextField)hbox.getChildren().get(0)).getText().equalsIgnoreCase(newIngredient));
-
-            if (isDuplicate) {
-                showToastInDialog("Bu malzeme zaten mevcut!",dialog);
-                return;
-            }
-
-            try {
-                double amount = Double.parseDouble(amountText);
-
-                TextField addedIngredientNameField = new TextField(newIngredient);
-                addedIngredientNameField.setEditable(false);
-                TextField addedIngredientAmountField = new TextField(String.format("%.2f", amount));
-                Label addedIngredientUnitLabel = new Label(selectedUnit);
-
-                HBox hbox = new HBox(5, addedIngredientNameField, addedIngredientAmountField, addedIngredientUnitLabel);
-                ingredientsListView.getItems().add(hbox);
-
-                newIngredientField.clear();
-                newAmountField.clear();
-                newUnitComboBox.setValue(null);
-
-                showToastInDialog("Malzeme başarıyla eklendi.",dialog);
-            } catch (NumberFormatException ex) {
-                showToastInDialog("Geçersiz miktar. Lütfen sayısal bir değer girin.",dialog);
-            }
-        });
-
-        Button removeIngredientButton = new Button("Seçili Malzemeyi Sil");
-        removeIngredientButton.setOnAction(e -> {
-            HBox selectedIngredient = ingredientsListView.getSelectionModel().getSelectedItem();
-            if (selectedIngredient != null) {
-                TextField nameField = (TextField) selectedIngredient.getChildren().get(0);
-                String malzemeAdi = nameField.getText();
-
-
-                db.deleteIngredientFromRecipe(conn, tarifID, malzemeAdi);
-
-
-                ingredientsListView.getItems().remove(selectedIngredient);
-
-
-                showToastInDialog("Malzeme başarıyla silindi.",dialog);
-            } else {
-                showToastInDialog("Lütfen silmek için bir malzeme seçin.",dialog);
-            }
-        });
-
-        HBox ingredientInputBox = new HBox(10, newIngredientField, newAmountField, newUnitComboBox, addIngredientButton, removeIngredientButton);
-
-        // Layout düzeni için VBox
-        VBox vbox = new VBox(10);
-        vbox.getChildren().addAll(
-                new Label("Tarif Adı:"), recipeNameField,
-                new Label("Kategori:"), categoryComboBox,
-                new Label("Hazırlama Süresi (dakika):"), preparationTimeField,
-                new Label("Talimatlar:"), instructionsField,
-                new Label("Malzemeler:"), ingredientsListView,
-                new Label("Yeni Malzeme Ekle:"), ingredientInputBox
-        );
-        dialog.getDialogPane().setContent(vbox);
-
-        // Dialog'a butonlar ekle
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
-        // Kullanıcı 'OK' butonuna tıklarsa işlemi gerçekleştirme
-        dialog.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                String newName = recipeNameField.getText();
-                String newCategory = categoryComboBox.getValue();
-                int newPreparationTime = Integer.parseInt(preparationTimeField.getText());
-                String newInstructions = formatInstructions(instructionsField.getText());
-                List<Map<String, Object>> updatedIngredients = new ArrayList<>();
-                for (HBox hbox : ingredientsListView.getItems()) {
-                    TextField nameField = (TextField) hbox.getChildren().get(0);
-                    TextField amountField = (TextField) hbox.getChildren().get(1);
-                    Label unitLabel = (Label) hbox.getChildren().get(2);
-                    Map<String, Object> ingredient = new HashMap<>();
-                    ingredient.put("name", nameField.getText());
-                    try {
-
-                        String amountText = amountField.getText().replace(',', '.');
-                        ingredient.put("amount", Double.parseDouble(amountText));  // Parse after formatting
-                    } catch (NumberFormatException e) {
-                        showToastInDialog("Geçersiz miktar. Lütfen sayısal bir değer girin.",dialog);
-                        return;
-                    }
-                    ingredient.put("unit", unitLabel.getText());
-                    updatedIngredients.add(ingredient);
-                }
-
-
-                db.updateRecipe(conn, tarifID, newName, newCategory, newPreparationTime, newInstructions);
-                db.updateRecipeIngredients(conn, tarifID, updatedIngredients);
-                showToast("Tarif güncellendi.");
-
-                loadRecipes(arama.getText());
-            }
-        });
-    }
 
     private String formatInstructions(String instructions) {
         StringBuilder formattedInstructions = new StringBuilder();
@@ -604,6 +447,7 @@ public class AnaSayfaController implements Initializable{
     }
 
 
+
     private void connectToDatabase() {
         try {
             conn = DriverManager.getConnection("jdbc:sqlite:./identifier.sqlite");
@@ -611,7 +455,7 @@ public class AnaSayfaController implements Initializable{
             e.printStackTrace();
         }
     }
-    private void showToast(String message) {
+    public void showToast(String message) {
         Popup popup = new Popup();
         popup.setAutoFix(true);
         popup.setAutoHide(true);
@@ -648,39 +492,4 @@ public class AnaSayfaController implements Initializable{
 
 
 
-    private void refreshIngredientList(ListView<String> listView, int tarifID) {
-        listView.getItems().clear();
-        List<String> ingredientDetails = db.getIngredientDetailsForRecipe(conn, tarifID);
-        System.out.println("Güncellenen malzeme listesi: " + ingredientDetails);
-        listView.getItems().addAll(ingredientDetails);
-    }
-
-
-    private void showToastInDialog(String message, Dialog<?> dialog) {
-        Label toastLabel = new Label(message);
-        toastLabel.setStyle("-fx-background-color: rgba(0, 0, 0, 0.8); " +
-                "-fx-text-fill: white; " +
-                "-fx-padding: 10px; " +
-                "-fx-border-radius: 5px;");
-        toastLabel.setAlignment(Pos.CENTER);
-        toastLabel.setMaxWidth(Double.MAX_VALUE);
-
-        VBox dialogContent = (VBox) dialog.getDialogPane().getContent();
-        dialogContent.getChildren().add(toastLabel);
-
-        PauseTransition pause = new PauseTransition(Duration.seconds(3));
-        pause.setOnFinished(e -> dialogContent.getChildren().remove(toastLabel));
-        pause.play();
-    }
-
 }
-
-/*
-
-yeni malzeme
-
-
-if(db.isDuplicateRecipe(conn, newName)) {
-                    showToast("Bu isimde bir tarif zaten mevcut!");
-                    return;
-                }*/

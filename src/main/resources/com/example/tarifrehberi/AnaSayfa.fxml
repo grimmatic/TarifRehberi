@@ -73,7 +73,7 @@
       </top>
       <left>
          <VBox prefHeight="984.0" prefWidth="283.0" style="-fx-background-color: #6F5CC2;" BorderPane.alignment="CENTER">
-            <Button alignment="BASELINE_LEFT" graphicTextGap="10.0" mnemonicParsing="false" onAction="#switchToTarifEkle" prefHeight="71.0" prefWidth="283.0" stylesheets="@../../../styling.css" text="Tarif Ekle" textFill="WHITE">
+            <Button  alignment="BASELINE_LEFT" graphicTextGap="10.0" mnemonicParsing="false" onAction="#handleAddRecipe" prefHeight="71.0" prefWidth="283.0" stylesheets="@../../../styling.css" text="Tarif Ekle" textFill="BLACK">
                <graphic>
                   <ImageView fitHeight="48.0" fitWidth="48.0" pickOnBounds="true" preserveRatio="true">
                      <image>
