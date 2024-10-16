@@ -221,7 +221,6 @@ public class AnaSayfaController implements Initializable{
                 buttonBox.getChildren().addAll(updateButton, deleteButton);
                 recipeBox.getChildren().add(buttonBox);
                 recipeGrid.add(recipeBox, column, row);
-                //  recipeGrid.setConstraints(recipeBox, column, row);
 
                 recipeBox.setOnMouseClicked(event -> displayRecipeDetails(tarifID,recipeName, category, preparationTime, Tarif)); //tarife tıklandıgında detay cıksın
                 column++;
