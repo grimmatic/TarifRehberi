@@ -14,6 +14,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -113,12 +114,19 @@ public class AnaSayfaController implements Initializable{
         }
 
         try {
-
             Statement stmt = conn.createStatement();
-            StringBuilder query = new StringBuilder("SELECT * FROM Tarifler");
+            StringBuilder query = new StringBuilder(
+                    "SELECT t.*, " +
+                            "(SELECT SUM(tm.MalzemeMiktar * m.BirimFiyat) " +
+                            "FROM TarifMalzeme tm " +
+                            "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
+                            "WHERE tm.TarifID = t.TarifID) AS ToplamMaliyet " +
+                            "FROM Tarifler t"
+            );
+
             boolean hasCondition = false;
             if (!search.isEmpty()) {
-                query.append(" WHERE TarifAdi LIKE '%").append(search).append("%'");
+                query.append(" WHERE t.TarifAdi LIKE '%").append(search).append("%'");
                 hasCondition = true;
             }
 
@@ -129,7 +137,7 @@ public class AnaSayfaController implements Initializable{
                     query.append(" WHERE");
                     hasCondition = true;
                 }
-                query.append(" Kategori IN ('").append(categoryFilter.replace(", ", "', '")).append("')");
+                query.append(" t.Kategori IN ('").append(categoryFilter.replace(", ", "', '")).append("')");
             }
 
 
@@ -156,15 +164,52 @@ public class AnaSayfaController implements Initializable{
                 int preparationTime = rs.getInt("HazirlamaSuresi");
                 String Tarif = rs.getString("Talimatlar");
                 int tarifID = rs.getInt("TarifID");
+                double toplamMaliyet = rs.getDouble("ToplamMaliyet");
+
+
+                boolean tarifYapilabilir = true;
+                double eksikMaliyet = 0.0;
+
+                String malzemeKontrolQuery = "SELECT tm.MalzemeMiktar, m.ToplamMiktar, m.BirimFiyat " +
+                        "FROM TarifMalzeme tm " +
+                        "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
+                        "WHERE tm.TarifID = ?";
+
+                PreparedStatement pstmt = conn.prepareStatement(malzemeKontrolQuery);
+                pstmt.setInt(1, tarifID);
+                ResultSet malzemeRs = pstmt.executeQuery();
+
+                while (malzemeRs.next()) {
+                    double gerekliMiktar = malzemeRs.getDouble("MalzemeMiktar");
+                    double mevcutMiktar = malzemeRs.getDouble("ToplamMiktar");
+                    double birimFiyat = malzemeRs.getDouble("BirimFiyat");
+
+                    if (gerekliMiktar > mevcutMiktar) {
+                        tarifYapilabilir = false;
+                        eksikMaliyet += (gerekliMiktar - mevcutMiktar) * birimFiyat;
+                    }
+                }
+
 
                 //tarifleri görselleştirmece
                 Label nameLabel = new Label(recipeName);
                 nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
                 Label categoryLabel = new Label(category);
                 Label timeLabel = new Label(preparationTime + " dakika");
+                Label costLabel;
 
 
-                VBox recipeBox = new VBox(nameLabel, categoryLabel, timeLabel);
+                if (tarifYapilabilir) {
+                    costLabel = new Label(String.format("Maliyet: %.2f ₺", toplamMaliyet));
+                    costLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #006400;");
+                } else {
+                    costLabel = new Label(String.format("Maliyet: %.2f₺   |||   Eksik Maliyet: %.2f₺", toplamMaliyet, eksikMaliyet));
+                    costLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #FF0000;");
+
+                }
+
+
+                VBox recipeBox = new VBox(nameLabel, categoryLabel, timeLabel,costLabel);
                 for (int i = 0; i < (int)Math.ceil((double)satir / 3); i++){
 
                     RowConstraints rowConstraints = new RowConstraints();
