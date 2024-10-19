@@ -22,6 +22,7 @@ import javafx.util.Duration;
 import java.net.URL;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class AnaSayfaController implements Initializable{
@@ -41,6 +42,9 @@ public class AnaSayfaController implements Initializable{
     private TreeView<HBox> treeView;
     @FXML
     public Button treeviewButton;
+    @FXML
+    private Button malzemeAramaButonu;
+    private VBox ingredientSearchVBox;
     private Stage stage;
     private Scene scene;
     private Parent root;
@@ -69,10 +73,6 @@ public class AnaSayfaController implements Initializable{
         // ve arayüzde görüntülenir.
         // Bu, kullanıcı uygulamayı başlattığında
         // hemen tarifleri görmesini sağlar.
-
-
-
-
 
 
 
@@ -365,12 +365,12 @@ public class AnaSayfaController implements Initializable{
         instructionsLabel.setStyle("-fx-font-size: 16px;-fx-font-weight: bold;");
         instructionsLabel.setPadding(new Insets(20, 0, 0, 140));
         Separator separator = new Separator();
-        separator.setPrefWidth(300);
+        separator.setPrefWidth(500);
 
         Label instructionsLabel0 = new Label(formatInstructions(instructions));
         instructionsLabel0.setStyle("-fx-font-size: 14px;-fx-font-weight: bold;");
         instructionsLabel0.setWrapText(true);
-        instructionsLabel0.setMaxWidth(350);
+        instructionsLabel0.setMaxWidth(500);
 
         VBox leftVBox = new VBox(10);
         leftVBox.setPadding(new Insets(20));
@@ -461,9 +461,8 @@ public class AnaSayfaController implements Initializable{
             // Ayrıca diğer arayüz bileşenleri görünür hale gelir.
             anchor.setPrefHeight(anchorYukeskligi);
             anchor.setMinHeight(anchorYukeskligi);
-            sortComboBox.setVisible(true);
-            arama.setVisible(true);
-            treeviewButton.setVisible(true);
+            toggleUIElements(true);
+            malzemeAramaButonu.setVisible(true);
 
 
             anchor.getChildren().remove(detailPane);
@@ -480,26 +479,14 @@ public class AnaSayfaController implements Initializable{
             loadRecipes(arama.getText());
 
 
-
-
-
-
-
-
-
-
-
             // Detay görünümünden çıkış ve listeyi tekrar yüklemek için:
             anchor.setPrefHeight(anchorYukeskligi);
             anchor.setMinHeight(anchorYukeskligi);
-            sortComboBox.setVisible(true);
-            arama.setVisible(true);
-            treeviewButton.setVisible(true);
+            toggleUIElements(true);
+            malzemeAramaButonu.setVisible(true);
             anchor.getChildren().remove(detailPane);
             recipeGrid.setVisible(true);
         });
-
-
 
         deleteButton.setOnAction(event -> { //Silme İşlemi: Bu butona tıklandığında,
             // tarif veritabanından silinir ve tariflerin listesi yeniden yüklenir.
@@ -507,9 +494,8 @@ public class AnaSayfaController implements Initializable{
             loadRecipes(arama.getText());
             anchor.setPrefHeight(anchorYukeskligi);
             anchor.setMinHeight(anchorYukeskligi);
-            sortComboBox.setVisible(true);
-            arama.setVisible(true);
-            treeviewButton.setVisible(true);
+            toggleUIElements(true);
+            malzemeAramaButonu.setVisible(true);
             anchor.getChildren().remove(detailPane);
             recipeGrid.setVisible(true);
         });
@@ -517,7 +503,6 @@ public class AnaSayfaController implements Initializable{
 
         VBox mainVBox = new VBox(20);
         mainVBox.getChildren().addAll(contentBox, buttonBox);
-
         detailPane.getChildren().add(mainVBox);
 
         AnchorPane.setTopAnchor(mainVBox, 0.0);
@@ -528,11 +513,8 @@ public class AnaSayfaController implements Initializable{
         anchor.setPrefHeight(615);
         anchor.setMinHeight(615);
         anchor.setMaxHeight(615);
-        sortComboBox.setVisible(false);
-        arama.setVisible(false);
-        treeviewButton.setVisible(false);
-
-
+        toggleUIElements(false);
+        malzemeAramaButonu.setVisible(false);
         anchor.getChildren().add(detailPane);
     }
 
@@ -572,8 +554,7 @@ public class AnaSayfaController implements Initializable{
 
     @FXML
     private void handleAddMaterial() {
-        MaterialDialog materialDialog1 = new MaterialDialog(); // Yeni MaterialDialog nesnesi oluştur
-        materialDialog1.showAddMaterialDialog(); // Dialog'ugöster
+        materialDialog.showAddMaterialDialog(); // Dialog'ugöster
 
 }
 
@@ -632,7 +613,151 @@ public class AnaSayfaController implements Initializable{
             }).start();
         });
     }
+    @FXML
+    private void handleIngredientSearchButtonAction(ActionEvent event) {
+        if (ingredientSearchVBox == null) {
+            createIngredientSearchVBox();
+        }
+        ingredientSearchVBox.setVisible(!ingredientSearchVBox.isVisible());
+    }
+
+    private void createIngredientSearchVBox() {
+        ingredientSearchVBox = new VBox(10);
+        ingredientSearchVBox.setStyle("-fx-background-color: #FFFFFF; -fx-padding: 10; -fx-border-color: #cccccc; -fx-border-width: 1;");
+        ingredientSearchVBox.setVisible(false);
+
+        Label titleLabel = new Label("Malzeme Seçimi");
+        titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefViewportHeight(300);
+
+        FlowPane flowPane = new FlowPane();
+        flowPane.setHgap(10);
+        flowPane.setVgap(10);
+        flowPane.setPrefWrapLength(200);
+
+        List<String> ingredients = db.getIngredientsFromDatabase(conn);
+        for (String ingredient : ingredients) {
+            CheckBox checkBox = new CheckBox(ingredient);
+            flowPane.getChildren().add(checkBox);
+        }
+
+        scrollPane.setContent(flowPane);
+
+        HBox buttonBox = new HBox(10);
+        Button searchButton = new Button("Tarifleri Ara");
+        searchButton.setOnAction(e -> searchRecipesByIngredients());
+
+        Button cancelButton = new Button("İptal Et");
+        cancelButton.setOnAction(e -> {
+            ingredientSearchVBox.setVisible(false);
+            loadRecipes(arama.getText());
+            toggleUIElements(true);
+        });
+
+        buttonBox.getChildren().addAll(searchButton, cancelButton);
+
+        ingredientSearchVBox.getChildren().addAll(titleLabel, scrollPane, buttonBox);
+
+        AnchorPane.setTopAnchor(ingredientSearchVBox, 0.0);
+        AnchorPane.setRightAnchor(ingredientSearchVBox, 0.0);
+        ingredientSearchVBox.setMaxHeight(400);
+        ingredientSearchVBox.setMaxWidth(250);
+
+        anchor.getChildren().add(ingredientSearchVBox);
+    }
+    private void searchRecipesByIngredients() {
+        List<String> selectedIngredients = ((FlowPane) ((ScrollPane) ingredientSearchVBox.getChildren().get(1)).getContent())
+                .getChildren().stream()
+                .filter(node -> node instanceof CheckBox)
+                .map(node -> (CheckBox) node)
+                .filter(CheckBox::isSelected)
+                .map(CheckBox::getText)
+                .collect(Collectors.toList());
+
+        if (selectedIngredients.isEmpty()) {
+            showToast("Lütfen en az bir malzeme seçin.");
+            return;
+        }
+
+        List<Map.Entry<String, Double>> matchingRecipes = db.getMatchingRecipes(conn, selectedIngredients);
+        displayMatchingRecipes(matchingRecipes);
+        //  ingredientSearchVBox.setVisible(false); // aradıktan sonra vbox'ı kapatmak için
+
+        toggleUIElements(false);
+    }
 
 
 
+    private void displayMatchingRecipes(List<Map.Entry<String, Double>> matchingRecipes) {
+        recipeGrid.getChildren().clear();
+        int row = 0;
+        int column = 0;
+        for (Map.Entry<String, Double> entry : matchingRecipes) {
+            String recipeName = entry.getKey();
+            double matchPercentage = entry.getValue();
+
+            VBox recipeBox = createRecipeBox(recipeName, matchPercentage);
+            recipeGrid.add(recipeBox, column, row);
+
+            column++;
+            if (column == 3) {
+                column = 0;
+                row++;
+            }
+        }
+    }
+
+
+    private VBox createRecipeBox(String recipeName, double matchPercentage) {
+        Label nameLabel = new Label(recipeName);
+        nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        Label percentageLabel = new Label(String.format("Eşleşme: %.2f%%", matchPercentage));
+
+
+        String color = calculateColor(matchPercentage);
+        percentageLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: " + color + ";");
+
+        VBox recipeBox = new VBox(5, nameLabel, percentageLabel);
+        recipeBox.setStyle("-fx-padding: 10; -fx-border-color: #cccccc; -fx-border-width: 1;");
+
+
+        recipeBox.setOnMouseClicked(event -> {
+            try {
+                String query = "SELECT TarifID, Kategori, HazirlamaSuresi, Talimatlar FROM Tarifler WHERE TarifAdi = ?";
+                PreparedStatement pstmt = conn.prepareStatement(query);
+                pstmt.setString(1, recipeName);
+                ResultSet rs = pstmt.executeQuery();
+
+                if (rs.next()) {
+                    int tarifID = rs.getInt("TarifID");
+                    String category = rs.getString("Kategori");
+                    int preparationTime = rs.getInt("HazirlamaSuresi");
+                    String instructions = rs.getString("Talimatlar");
+
+                    displayRecipeDetails(tarifID, recipeName, category, preparationTime, instructions);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                showToast("Tarif detayları yüklenirken bir hata oluştu.");
+            }
+        });
+
+        return recipeBox;
+    }
+
+    private String calculateColor(double percentage) {
+        int red = (int) (255 * (100 - percentage) / 100);
+        int green = (int) (255 * percentage / 100);
+        return String.format("#%02X%02X00", red, green);
+    }
+    private void toggleUIElements(boolean visible) {
+        sortComboBox.setVisible(visible);
+        arama.setVisible(visible);
+        treeviewButton.setVisible(visible);
+
+    }
 }

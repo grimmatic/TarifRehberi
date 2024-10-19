@@ -645,7 +645,40 @@ public class Database {
         } catch (SQLException e) {
             e.printStackTrace();}
     }
+    public List<Map.Entry<String, Double>> getMatchingRecipes(Connection conn, List<String> userIngredients) {
+        Map<String, Double> recipeMatches = new HashMap<>();
+        String placeholders = String.join(",", Collections.nCopies(userIngredients.size(), "?"));
+        String query = "SELECT t.TarifID, t.TarifAdi, " +
+                "COUNT(DISTINCT CASE WHEN m.MalzemeAdi IN (" + placeholders + ") THEN m.MalzemeID END) as MatchingIngredients, " +
+                "COUNT(DISTINCT tm.MalzemeID) as TotalIngredients " +
+                "FROM Tarifler t " +
+                "JOIN TarifMalzeme tm ON t.TarifID = tm.TarifID " +
+                "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
+                "GROUP BY t.TarifID, t.TarifAdi";
 
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            for (int i = 0; i < userIngredients.size(); i++) {
+                pstmt.setString(i + 1, userIngredients.get(i));
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    String recipeName = rs.getString("TarifAdi");
+                    int matchingIngredients = rs.getInt("MatchingIngredients");
+                    int totalIngredients = rs.getInt("TotalIngredients");
+                    double matchPercentage = (double) matchingIngredients / totalIngredients * 100;
+                    recipeMatches.put(recipeName, matchPercentage);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        List<Map.Entry<String, Double>> sortedMatches = new ArrayList<>(recipeMatches.entrySet());
+        sortedMatches.sort(Map.Entry.<String, Double>comparingByValue().reversed());
+
+        return sortedMatches;
+    }
 
 
 
