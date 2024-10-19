@@ -88,7 +88,7 @@
                   <Font name="Cascadia Code Regular" size="20.0" />
                </font>
             </Button>
-            <Button alignment="BASELINE_LEFT" graphicTextGap="10.0" mnemonicParsing="false" prefHeight="77.0" prefWidth="283.0" stylesheets="@../../../styling.css" text="Malzeme Ekle" textFill="WHITE">
+            <Button alignment="BASELINE_LEFT" graphicTextGap="10.0" mnemonicParsing="false" onAction="#handleAddMaterial" prefHeight="77.0" prefWidth="283.0" stylesheets="@../../../styling.css" text="Malzeme Ekle" textFill="WHITE">
                <graphic>
                   <ImageView fitHeight="48.0" fitWidth="48.0" pickOnBounds="true" preserveRatio="true">
                      <image>

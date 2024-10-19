@@ -162,7 +162,10 @@ public class TarifEkle {
         dialog.getDialogPane().setContent(vbox);
 
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        cancelButton.setText("İptal");
         Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("Tarifi Ekle");
         okButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             if (!handleAddRecipe(dialog, recipeNameField, categoryComboBox, preparationTimeField, instructionsField, ingredientMap)) {
                 event.consume(); // Eğer handleAddRecipe false dönerse, dialog kapanmayacak

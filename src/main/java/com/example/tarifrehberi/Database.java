@@ -163,6 +163,31 @@ public class Database {
         return -1; // Hata durumunda
     }
 
+    public void addMalzeme(Connection conn, String malzemeAdi, String toplamMiktar, Double birimFiyat, String malzemeBirim) {
+        // Varsayılan değerleri kontrol et
+        if (toplamMiktar == null || toplamMiktar.isEmpty()) {
+            toplamMiktar = "1"; // Varsayılan değer
+        }
+        if (birimFiyat == null || birimFiyat <= 0) {
+            birimFiyat = 10.0; // Varsayılan değer
+        }
+
+        String insertSQL = "INSERT INTO Malzemeler (MalzemeAdi, ToplamMiktar, MalzemeBirim, BirimFiyat) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            pstmt.setString(1, malzemeAdi);
+            pstmt.setString(2, toplamMiktar); // Miktarı String olarak ayarlayın
+            pstmt.setString(3, malzemeBirim); // Birimi MalzemeBirim olarak ayarlayın
+            pstmt.setDouble(4, birimFiyat);
+
+            pstmt.executeUpdate();
+            System.out.println("Malzeme başarıyla eklendi.");
+        } catch (SQLException e) {
+            System.out.println("Malzeme eklenirken hata: " + e.getMessage());
+}
+}
+
+
 
     // Tarif-Malzeme ilişkisi eklemece yaani bir tarifin hangi malzemeden ne kadar içerdiğini
     public void addRecipeIngredient(Connection conn, int tarifID, int malzemeID, float miktar) {
@@ -508,7 +533,11 @@ public class Database {
 
     public List<String> getCategoriesFromRecipes(Connection conn) {
         List<String> categories = new ArrayList<>();
-        String sql = "SELECT DISTINCT Kategori FROM Tarifler"; // Kategorileri tekrar etmeden alıyoruz
+        if (conn == null) {
+            System.out.println("Database connection is null");
+            return categories;
+        }
+        String sql = "SELECT DISTINCT Kategori FROM Tarifler";
 
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {

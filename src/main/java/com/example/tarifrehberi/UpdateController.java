@@ -193,9 +193,15 @@ public class UpdateController {
     }
     public void setOnRecipeUpdatedCallback(Runnable callback) {
         this.onRecipeUpdatedCallback = callback;
+        this.onRecipeUpdatedCallback = callback;
     }
     public void showUpdateDialog(int tarifID, String recipeName, String category,
                                  int preparationTime, String instructions) {
+
+
+
+
+
         Dialog<ButtonType> dialog = createDialog();
 
         TextField recipeNameField = new TextField(recipeName);
@@ -221,8 +227,10 @@ public class UpdateController {
 
         dialog.getDialogPane().setContent(borderPane);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
-
+        Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        cancelButton.setText("İptal");
         Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.setText("Tarifi Güncelle");
         okButton.addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
             if (!handleUpdateRecipe(dialog, tarifID, recipeNameField, categoryComboBox, preparationTimeField, instructionsField, ingredientsListView)) {
                 event.consume(); // Eğer handleUpdateRecipe false dönerse, dialog kapanmayacak

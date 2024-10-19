@@ -48,6 +48,7 @@ public class AnaSayfaController implements Initializable{
     private Connection conn;
     private UpdateController updateController;
     private TarifEkle tarifEkle;
+    private MaterialDialog materialDialog;
 
 
     Database db = new Database();
@@ -55,17 +56,21 @@ public class AnaSayfaController implements Initializable{
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-
-
         connectToDatabase();
+        updateController = new UpdateController(conn, db);
+        tarifEkle = new TarifEkle(db, conn);
+        materialDialog = new MaterialDialog();
+
+
+
         loadRecipes(""); // Başlangıçta tüm tarifleri yükler.
         // Boş bir arama terimi geçirildiği için,
         // veritabanından mevcut olan tüm tarifler alınır
         // ve arayüzde görüntülenir.
         // Bu, kullanıcı uygulamayı başlattığında
         // hemen tarifleri görmesini sağlar.
-        updateController = new UpdateController(conn, db);
-        tarifEkle = new TarifEkle(db, conn);
+
+
 
 
 
@@ -92,11 +97,21 @@ public class AnaSayfaController implements Initializable{
         }
 
 
-        tarifEkle = new TarifEkle(db, conn);
         tarifEkle.setOnRecipeAddedCallback(() -> {
             showToast("Yeni tarif başarıyla eklendi.");
             loadRecipes(arama.getText());
         });
+
+        updateController.setOnRecipeUpdatedCallback(() -> {
+            showToast("Tarif başarıyla güncellendi.");
+            loadRecipes(arama.getText());
+        });
+
+        materialDialog.setOnMaterialAddedCallback(() -> {
+            showToast("Yeni malzeme başarıyla eklendi.");
+
+        });
+
 
 
 
@@ -255,10 +270,7 @@ public class AnaSayfaController implements Initializable{
                 updateButton.setOnAction(event -> {
                     // Butona basıldığında dialogu göster
                     updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif);
-                    updateController.setOnRecipeUpdatedCallback(() -> {
-                        showToast("Tarif başarıyla güncellendi.");
-                        loadRecipes(arama.getText());
-                    });
+
 
                 });
 
@@ -287,24 +299,18 @@ public class AnaSayfaController implements Initializable{
     }
 
     private void displayRecipeDetails(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
-        UpdateController updateController = new UpdateController(conn, db); // Burada doğru bağlantıyı sağlayın.
+        UpdateController updateController = new UpdateController(conn, db);
 
-
-
-        recipeGrid.setVisible(false);//Mevcut tariflerin bulunduğu ızgarayı (grid) görünmez hale getirir.
-        // Böylece tarif detayları görünür olduğunda mevcut tarifler gizlenmiş olur.
-
+        recipeGrid.setVisible(false);
 
         AnchorPane detailPane = new AnchorPane();
         detailPane.setStyle("-fx-background-color: #FFFFFF;");
         detailPane.setPadding(new Insets(20));
 
-
         Image backgroundImage = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/recipebackground.jpg")));
         ImageView backgroundImageView = new ImageView(backgroundImage);
         backgroundImageView.setFitWidth(1000);
         backgroundImageView.setFitHeight(615);
-        //  backgroundImageView.setPreserveRatio(true);
         backgroundImageView.setOpacity(0.15);
         detailPane.getChildren().add(backgroundImageView);
 
@@ -315,20 +321,64 @@ public class AnaSayfaController implements Initializable{
         Label timeLabel = new Label("Hazırlama Süresi: " + preparationTime + " dakika");
         timeLabel.setStyle("-fx-font-size: 16px");
 
+
+        double toplamMaliyet = 0.0;
+        double eksikMaliyet = 0.0;
+        boolean tarifYapilabilir = true;
+
+        try {
+            String malzemeKontrolQuery = "SELECT tm.MalzemeMiktar, m.ToplamMiktar, m.BirimFiyat " +
+                    "FROM TarifMalzeme tm " +
+                    "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
+                    "WHERE tm.TarifID = ?";
+
+            PreparedStatement pstmt = conn.prepareStatement(malzemeKontrolQuery);
+            pstmt.setInt(1, tarifID);
+            ResultSet malzemeRs = pstmt.executeQuery();
+
+            while (malzemeRs.next()) {
+                double gerekliMiktar = malzemeRs.getDouble("MalzemeMiktar");
+                double mevcutMiktar = malzemeRs.getDouble("ToplamMiktar");
+                double birimFiyat = malzemeRs.getDouble("BirimFiyat");
+
+                toplamMaliyet += gerekliMiktar * birimFiyat;
+
+                if (gerekliMiktar > mevcutMiktar) {
+                    tarifYapilabilir = false;
+                    eksikMaliyet += (gerekliMiktar - mevcutMiktar) * birimFiyat;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        Label costLabel = new Label(String.format("Toplam Maliyet: %.2f ₺", toplamMaliyet));
+        costLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        Label missingCostLabel = new Label();
+        if (!tarifYapilabilir) {
+            missingCostLabel.setText(String.format("Eksik Maliyet: %.2f ₺", eksikMaliyet));
+            missingCostLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #FF0000;");
+        }
+
         Label instructionsLabel = new Label("Talimatlar");
         instructionsLabel.setStyle("-fx-font-size: 16px;-fx-font-weight: bold;");
-        instructionsLabel.setPadding(new Insets(100, 0, 0, 140));
+        instructionsLabel.setPadding(new Insets(20, 0, 0, 140));
         Separator separator = new Separator();
         separator.setPrefWidth(300);
 
-
-        Label instructionsLabel0 = new Label( formatInstructions(instructions));
+        Label instructionsLabel0 = new Label(formatInstructions(instructions));
         instructionsLabel0.setStyle("-fx-font-size: 14px;-fx-font-weight: bold;");
         instructionsLabel0.setWrapText(true);
         instructionsLabel0.setMaxWidth(350);
 
-        VBox vbox = new VBox(10, nameLabel, categoryLabel, timeLabel,instructionsLabel,separator,instructionsLabel0);
-        vbox.setPadding(new Insets(20));
+        VBox leftVBox = new VBox(10);
+        leftVBox.setPadding(new Insets(20));
+        leftVBox.setMaxWidth(500);
+        leftVBox.getChildren().addAll(nameLabel, categoryLabel, timeLabel, costLabel, missingCostLabel, instructionsLabel, separator, instructionsLabel0);
+        VBox rightVBox = new VBox(10);
+        rightVBox.setPadding(new Insets(20));
+        rightVBox.setAlignment(Pos.TOP_LEFT);
 
         HBox buttonBox = new HBox(10);
         buttonBox.setAlignment(Pos.CENTER);
@@ -362,7 +412,48 @@ public class AnaSayfaController implements Initializable{
 
 
         buttonBox.getChildren().addAll(editButton, deleteButton, homeButton);
-        vbox.getChildren().add(buttonBox);
+        leftVBox.getChildren().add(buttonBox);
+
+
+
+        Label ingredientsTitle = new Label("Malzemeler");
+        ingredientsTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        rightVBox.getChildren().add(ingredientsTitle);
+
+
+        try {
+            String ingredientsQuery = "SELECT m.MalzemeAdi, tm.MalzemeMiktar, m.MalzemeBirim " +
+                    "FROM TarifMalzeme tm " +
+                    "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
+                    "WHERE tm.TarifID = ?";
+            PreparedStatement pstmt = conn.prepareStatement(ingredientsQuery);
+            pstmt.setInt(1, tarifID);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String malzemeAdi = rs.getString("MalzemeAdi");
+                double miktar = rs.getDouble("MalzemeMiktar");
+                String birim = rs.getString("MalzemeBirim");
+
+                // Miktar formatting
+                String formattedMiktar;
+                if (miktar == (int) miktar) {
+                    formattedMiktar = String.format("%d", (int) miktar);
+                } else {
+                    formattedMiktar = String.format("%.2f", miktar);
+                }
+
+                Label ingredientLabel = new Label(String.format("• %s: %s %s", malzemeAdi, formattedMiktar, birim));
+                ingredientLabel.setStyle("-fx-font-size: 14px;");
+                rightVBox.getChildren().add(ingredientLabel);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        HBox contentBox = new HBox(20);
+        contentBox.getChildren().addAll(leftVBox, rightVBox);
+
 
 
         homeButton.setOnAction(event -> { //Bu butona tıklandığında, detayları gösteren detailPane kaldırılır
@@ -424,14 +515,15 @@ public class AnaSayfaController implements Initializable{
         });
 
 
+        VBox mainVBox = new VBox(20);
+        mainVBox.getChildren().addAll(contentBox, buttonBox);
 
+        detailPane.getChildren().add(mainVBox);
 
-        detailPane.getChildren().add(vbox);
-
-        AnchorPane.setTopAnchor(detailPane, 0.0);
-        AnchorPane.setRightAnchor(detailPane, 0.0);
-        AnchorPane.setBottomAnchor(detailPane, 0.0);
-        AnchorPane.setLeftAnchor(detailPane, 0.0);
+        AnchorPane.setTopAnchor(mainVBox, 0.0);
+        AnchorPane.setRightAnchor(mainVBox, 0.0);
+        AnchorPane.setBottomAnchor(mainVBox, 0.0);
+        AnchorPane.setLeftAnchor(mainVBox, 0.0);
 
         anchor.setPrefHeight(615);
         anchor.setMinHeight(615);
@@ -477,6 +569,13 @@ public class AnaSayfaController implements Initializable{
         tarifEkle.showAddRecipeDialog();
     }
 
+
+    @FXML
+    private void handleAddMaterial() {
+        MaterialDialog materialDialog1 = new MaterialDialog(); // Yeni MaterialDialog nesnesi oluştur
+        materialDialog1.showAddMaterialDialog(); // Dialog'ugöster
+
+}
 
 
     private String formatInstructions(String instructions) {
