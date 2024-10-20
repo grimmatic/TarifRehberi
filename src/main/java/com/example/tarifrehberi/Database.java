@@ -75,37 +75,60 @@ public class Database {
 
     public void addRecipe(Connection conn, String tarifAdi, String kategori, int hazirlamaSuresi, String talimatlar, Map<String, Map<String, Object>> malzemeler) {
         try {
-            // Tarifi ekle
+            conn.setAutoCommit(false);
+
             String query = "INSERT INTO Tarifler (TarifAdi, Kategori, HazirlamaSuresi, Talimatlar) VALUES (?, ?, ?, ?)";
-            PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement pstmt = conn.prepareStatement(query);
             pstmt.setString(1, tarifAdi);
             pstmt.setString(2, kategori);
             pstmt.setInt(3, hazirlamaSuresi);
             pstmt.setString(4, talimatlar);
-            pstmt.executeUpdate();
-            // Tarifin ID'sini al
-            ResultSet rs = pstmt.getGeneratedKeys();
-            if (true) {
 
-                int tarifID = rs.getInt(1);
+            int affectedRows = pstmt.executeUpdate();
+            System.out.println("Affected rows: " + affectedRows);
 
-                // Malzemeleri ekle
-                for (Map.Entry<String, Map<String, Object>> entry : malzemeler.entrySet()) {
-                    String malzemeAdi = entry.getKey();
-                    Map<String, Object> malzemeDetay = entry.getValue();
-                    Float miktar = (Float) malzemeDetay.get("miktar");
-                    String birim = (String) malzemeDetay.get("birim");
-
-                    // Malzeme var mı kontrol et yoksa ekle
-                    int malzemeID = getOrCreateIngredient(conn, malzemeAdi, birim);
-
-                    // Tarif Malzeme ilişkisini ekle
-                    addRecipeIngredient(conn, tarifID, malzemeID, miktar);
-                }
-                System.out.println("Recipe added successfully.");
+            if (affectedRows == 0) {
+                throw new SQLException("Tarif oluşturulamadı, hiçbir satır etkilenmedi.");
             }
-        } catch (Exception e) {
-            System.out.println(e);
+
+            int tarifID;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs.next()) {
+                    tarifID = rs.getInt(1);
+                    System.out.println("Oluşturulan TarifID: " + tarifID);
+                } else {
+                    throw new SQLException("Tarif oluşturuldu ancak ID alınamadı.");
+                }
+            }
+
+            // Malzemeleri ekle
+            for (Map.Entry<String, Map<String, Object>> entry : malzemeler.entrySet()) {
+                String malzemeAdi = entry.getKey();
+                Map<String, Object> malzemeDetay = entry.getValue();
+                Float miktar = (Float) malzemeDetay.get("miktar");
+                String birim = (String) malzemeDetay.get("birim");
+
+                int malzemeID = getOrCreateIngredient(conn, malzemeAdi, birim);
+                addRecipeIngredient(conn, tarifID, malzemeID, miktar);
+            }
+
+            conn.commit();
+            System.out.println("Tarif Başarıyla Eklendi");
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("SQL Exception: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -554,7 +577,7 @@ public class Database {
     // duplicate kontrolü
     public boolean isDuplicateRecipe(Connection conn, String tarifAdi) {
         try {
-            String query = "SELECT COUNT(*) FROM Tarifler WHERE TarifAdi = ?";
+            String query = "SELECT COUNT(*) FROM Tarifler WHERE LOWER(TarifAdi) = LOWER(?)";
             PreparedStatement pstmt = conn.prepareStatement(query);
             pstmt.setString(1, tarifAdi);
             ResultSet rs = pstmt.executeQuery();

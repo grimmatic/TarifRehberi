@@ -1,24 +1,16 @@
 package com.example.tarifrehberi;
-import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.text.TextFlow;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
-import javafx.util.Duration;
-
 import java.net.URL;
 import java.sql.*;
 import java.util.*;
@@ -26,7 +18,6 @@ import java.util.stream.Collectors;
 
 
 public class AnaSayfaController implements Initializable{
-
 
     @FXML
     private TextField arama;
@@ -39,20 +30,22 @@ public class AnaSayfaController implements Initializable{
     @FXML
     private VBox filterVBox;
     @FXML
-    private TreeView<HBox> treeView;
+    private TreeView<Object> treeView;
     @FXML
     public Button treeviewButton;
     @FXML
     private Button malzemeAramaButonu;
+    @FXML TextField minCostField;
+    @FXML TextField maxCostField;
+
     private VBox ingredientSearchVBox;
     private Stage stage;
-    private Scene scene;
-    private Parent root;
     int anchorYukeskligi = 0;
     private Connection conn;
     private UpdateController updateController;
     private TarifEkle tarifEkle;
     private MaterialDialog materialDialog;
+    private FlowPane ingredientFlowPane;
 
 
     Database db = new Database();
@@ -66,15 +59,7 @@ public class AnaSayfaController implements Initializable{
         materialDialog = new MaterialDialog();
 
 
-
-        loadRecipes(""); // Başlangıçta tüm tarifleri yükler.
-        // Boş bir arama terimi geçirildiği için,
-        // veritabanından mevcut olan tüm tarifler alınır
-        // ve arayüzde görüntülenir.
-        // Bu, kullanıcı uygulamayı başlattığında
-        // hemen tarifleri görmesini sağlar.
-
-
+        loadRecipes("");
 
         if (arama != null) {
             arama.focusedProperty().addListener((observable, oldValue, newValue) -> {
@@ -84,17 +69,11 @@ public class AnaSayfaController implements Initializable{
             });
         }
 
-        arama.textProperty().addListener((observable, oldValue, newValue) -> loadRecipes(newValue)); // Kullanıcı arama alanına metin girdiğinde (veya metni değiştirdiğinde), loadRecipes(newValue) metodu çağrılır. Bu, veritabanındaki tariflerin arama terimine göre güncellenmesini sağlar. Örneğin, kullanıcı "pasta" yazarsa, yalnızca pasta tarifleri yüklenir.
+        arama.textProperty().addListener((observable, oldValue, newValue) -> loadRecipes(newValue));
+        sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> loadRecipes(arama.getText()));
 
-        sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> loadRecipes(arama.getText())); //sıralam kutucugu, en kısa en yavaş vs
-
-        for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) { //kategoriye göre arama
-            HBox hBox = categoryItem.getValue();
-            CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
-            checkBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
-                loadRecipes(arama.getText());
-            });
-        }
+        setupTreeViewListeners();
+        setupCostFieldListeners();
 
 
         tarifEkle.setOnRecipeAddedCallback(() -> {
@@ -109,10 +88,8 @@ public class AnaSayfaController implements Initializable{
 
         materialDialog.setOnMaterialAddedCallback(() -> {
             showToast("Yeni malzeme başarıyla eklendi.");
-
+            updateIngredientSearchVBox();
         });
-
-
 
 
     }
@@ -123,6 +100,19 @@ public class AnaSayfaController implements Initializable{
         int satir=0;
         String sort = sortComboBox.getSelectionModel().getSelectedItem();
         String categoryFilter = getSelectedCategories();
+        int ingredientCount = getSelectedIngredientCount();
+        double[] costRange = getCostRange();
+        List<String> conditions = new ArrayList<>();
+        if (costRange != null) {
+            if (costRange[0] != -1 && costRange[1] != -1) {
+                conditions.add("ToplamMaliyet BETWEEN " + costRange[0] + " AND " + costRange[1]);
+            } else if (costRange[0] != -1) {
+                conditions.add("ToplamMaliyet >= " + costRange[0]);
+            } else if (costRange[1] != -1) {
+                conditions.add("ToplamMaliyet <= " + costRange[1]);
+            }
+        }
+
         if (categoryFilter == null || categoryFilter.isEmpty()) {
             recipeGrid.getChildren().clear();
             return;
@@ -135,32 +125,48 @@ public class AnaSayfaController implements Initializable{
                             "(SELECT SUM(tm.MalzemeMiktar * m.BirimFiyat) " +
                             "FROM TarifMalzeme tm " +
                             "JOIN Malzemeler m ON tm.MalzemeID = m.MalzemeID " +
-                            "WHERE tm.TarifID = t.TarifID) AS ToplamMaliyet " +
+                            "WHERE tm.TarifID = t.TarifID) AS ToplamMaliyet, " +
+                            "(SELECT COUNT(*) FROM TarifMalzeme tm WHERE tm.TarifID = t.TarifID) AS MalzemeSayisi " +
                             "FROM Tarifler t"
             );
 
-            boolean hasCondition = false;
+
             if (!search.isEmpty()) {
-                query.append(" WHERE t.TarifAdi LIKE '%").append(search).append("%'");
-                hasCondition = true;
+                conditions.add("t.TarifAdi LIKE '%" + search + "%'");
             }
 
             if (categoryFilter != null && !categoryFilter.isEmpty()) {
-                if (hasCondition) {
-                    query.append(" AND");
-                } else {
-                    query.append(" WHERE");
-                    hasCondition = true;
-                }
-                query.append(" t.Kategori IN ('").append(categoryFilter.replace(", ", "', '")).append("')");
+                conditions.add("t.Kategori IN ('" + categoryFilter.replace(", ", "','") + "')");
             }
+
+            if (ingredientCount > 0) {
+                if (ingredientCount == Integer.MAX_VALUE) {
+                    conditions.add("MalzemeSayisi >= 9");
+                } else {
+                    conditions.add("MalzemeSayisi = " + ingredientCount);
+                }
+            }
+
+            if (costRange != null) {
+                conditions.add("ToplamMaliyet BETWEEN " + costRange[0] + " AND " + costRange[1]);
+            }
+
+            if (!conditions.isEmpty()) {
+                query.append(" WHERE ").append(String.join(" AND ", conditions));
+            }
+
+
+
+
 
 
             if (sort != null) {
                 switch (sort) {
                     case "-" -> query.append(" ORDER BY TarifID ASC");
-                    case "En Yavaş" -> query.append(" ORDER BY HazirlamaSuresi DESC");
-                    case "En Çabuk" -> query.append(" ORDER BY HazirlamaSuresi ASC");
+                    case "Hazırlama Süresi (Azalan)" -> query.append(" ORDER BY HazirlamaSuresi DESC");
+                    case "Hazırlama Şuresi (Artan)" -> query.append(" ORDER BY HazirlamaSuresi ASC");
+                    case "Maliyet (Artan)" -> query.append(" ORDER BY ToplamMaliyet ASC");
+                    case "Maliyet (Azalan)" -> query.append(" ORDER BY ToplamMaliyet DESC");
                 }
             }
 
@@ -206,7 +212,7 @@ public class AnaSayfaController implements Initializable{
                 }
 
 
-                //tarifleri görselleştirmece
+
                 Label nameLabel = new Label(recipeName);
                 nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
                 Label categoryLabel = new Label(category);
@@ -266,12 +272,10 @@ public class AnaSayfaController implements Initializable{
                     loadRecipes(arama.getText());
                 });
 
-                //updateButton.setOnAction(event -> showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif));
+
                 updateButton.setOnAction(event -> {
                     // Butona basıldığında dialogu göster
                     updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif);
-
-
                 });
 
 
@@ -470,8 +474,6 @@ public class AnaSayfaController implements Initializable{
             recipeGrid.setVisible(true);
         });
 
-//        editButton.setOnAction(event -> {
-//            showUpdateDialog(tarifID, recipeName, category, preparationTime, instructions);
 
         editButton.setOnAction(event -> {
             // UpdateController'daki showUpdateDialog metodunu çağır
@@ -527,23 +529,6 @@ public class AnaSayfaController implements Initializable{
         filterVBox.setVisible(!filterVBox.isVisible());
     }
 
-    private String getSelectedCategories() { //kullanıcı tarafından seçilen kategorileri almak için kullanılır.
-        StringBuilder categories = new StringBuilder();
-
-        for (TreeItem<HBox> categoryItem : treeView.getRoot().getChildren()) {
-            HBox hBox = categoryItem.getValue();
-            CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
-
-            if (checkBox.isSelected()) {
-                if (categories.length() > 0) {
-                    categories.append(", ");
-                }
-                categories.append(((Label) hBox.getChildren().get(1)).getText());
-            }
-        }
-
-        return categories.length() > 0 ? categories.toString() : null;
-    }
 
 
     @FXML
@@ -593,7 +578,7 @@ public class AnaSayfaController implements Initializable{
 
         popup.getContent().add(label);
 
-        Stage stage = (Stage) anchor.getScene().getWindow();
+        stage = (Stage) anchor.getScene().getWindow();
 
         popup.setOnShown(e -> {
             popup.setX(stage.getX() + stage.getWidth()/2 - popup.getWidth()/2);
@@ -623,7 +608,7 @@ public class AnaSayfaController implements Initializable{
 
     private void createIngredientSearchVBox() {
         ingredientSearchVBox = new VBox(10);
-        ingredientSearchVBox.setStyle("-fx-background-color: #FFFFFF; -fx-padding: 10; -fx-border-color: #cccccc; -fx-border-width: 1;");
+        ingredientSearchVBox.setStyle("-fx-background-color: #efe3f2; -fx-padding: 10; -fx-border-color: #5A4FB8; -fx-border-width: 10;");
         ingredientSearchVBox.setVisible(false);
 
         Label titleLabel = new Label("Malzeme Seçimi");
@@ -633,18 +618,21 @@ public class AnaSayfaController implements Initializable{
         scrollPane.setFitToWidth(true);
         scrollPane.setPrefViewportHeight(300);
 
-        FlowPane flowPane = new FlowPane();
-        flowPane.setHgap(10);
-        flowPane.setVgap(10);
-        flowPane.setPrefWrapLength(200);
+        ingredientFlowPane = new FlowPane();
+        ingredientFlowPane.setHgap(10);
+        ingredientFlowPane.setVgap(10);
+        ingredientFlowPane.setPrefWrapLength(200);
+        ingredientFlowPane.setStyle("-fx-background-color: #efe3f2");
+        updateIngredientSearchVBox();
+        scrollPane.setContent(ingredientFlowPane);
 
         List<String> ingredients = db.getIngredientsFromDatabase(conn);
         for (String ingredient : ingredients) {
             CheckBox checkBox = new CheckBox(ingredient);
-            flowPane.getChildren().add(checkBox);
+            ingredientFlowPane.getChildren().add(checkBox);
         }
 
-        scrollPane.setContent(flowPane);
+        scrollPane.setContent(ingredientFlowPane);
 
         HBox buttonBox = new HBox(10);
         Button searchButton = new Button("Tarifleri Ara");
@@ -667,6 +655,15 @@ public class AnaSayfaController implements Initializable{
         ingredientSearchVBox.setMaxWidth(250);
 
         anchor.getChildren().add(ingredientSearchVBox);
+    }
+
+    private void updateIngredientSearchVBox() {
+        List<String> ingredients = db.getIngredientsFromDatabase(conn);
+        ingredientFlowPane.getChildren().clear();
+        for (String ingredient : ingredients) {
+            CheckBox checkBox = new CheckBox(ingredient);
+            ingredientFlowPane.getChildren().add(checkBox);
+        }
     }
     private void searchRecipesByIngredients() {
         List<String> selectedIngredients = ((FlowPane) ((ScrollPane) ingredientSearchVBox.getChildren().get(1)).getContent())
@@ -760,4 +757,213 @@ public class AnaSayfaController implements Initializable{
         treeviewButton.setVisible(visible);
 
     }
+
+
+
+
+
+
+    //Filtre
+
+
+
+
+
+
+
+
+    private String getSelectedCategories() {
+        StringBuilder categories = new StringBuilder();
+
+        TreeItem<Object> root = treeView.getRoot();
+        TreeItem<Object> categoriesItem = root.getChildren().stream()
+                .filter(item -> "Kategoriler".equals(item.getValue()))
+                .findFirst()
+                .orElse(null);
+
+        if (categoriesItem != null) {
+            for (TreeItem<Object> categoryItem : categoriesItem.getChildren()) {
+                if (categoryItem.getValue() instanceof HBox) {
+                    HBox hBox = (HBox) categoryItem.getValue();
+                    CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
+                    Label label = (Label) hBox.getChildren().get(1);
+
+                    if (checkBox.isSelected()) {
+                        if (categories.length() > 0) {
+                            categories.append(", ");
+                        }
+                        categories.append(label.getText());
+                    }
+                }
+            }
+        }
+
+        return categories.length() > 0 ? categories.toString() : null;
+    }
+
+    private int getSelectedIngredientCount() {
+        TreeItem<Object> root = treeView.getRoot();
+        TreeItem<Object> ingredientCountItem = root.getChildren().stream()
+                .filter(item -> "Malzeme Sayısı".equals(item.getValue()))
+                .findFirst()
+                .orElse(null);
+
+        if (ingredientCountItem != null) {
+            for (TreeItem<Object> countItem : ingredientCountItem.getChildren()) {
+                Object value = countItem.getValue();
+                if (value instanceof HBox) {
+                    HBox hBox = (HBox) value;
+                    RadioButton radioButton = (RadioButton) hBox.getChildren().get(0);
+                    Label label = (Label) hBox.getChildren().get(1);
+
+                    if (radioButton.isSelected()) {
+                        String countText = label.getText().split(" ")[0];
+                        if ("Tümü".equals(countText)) {
+                            return -1;
+                        } else if ("9+".equals(countText)) {
+                            return Integer.MAX_VALUE;
+                        } else {
+                            try {
+                                return Integer.parseInt(countText);
+                            } catch (NumberFormatException e) {
+                                System.err.println("Geçersiz malzeme sayısı: " + countText);
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private double[] getCostRange() {
+        double min = -1;
+        double max = -1;
+
+        if (!minCostField.getText().isEmpty()) {
+            try {
+                min = Double.parseDouble(minCostField.getText());
+            } catch (NumberFormatException e) {
+            }
+        }
+
+        if (!maxCostField.getText().isEmpty()) {
+            try {
+                max = Double.parseDouble(maxCostField.getText());
+            } catch (NumberFormatException e) {
+            }
+        }
+
+        if (min == -1 && max == -1) {
+            return null;
+        } else {
+            if (min != -1 && max == -1) {
+                return new double[]{min, Double.MAX_VALUE};
+            } else {
+                return new double[]{min, max};
+            }
+        }
+    }
+
+
+
+
+
+    private void setupTreeViewListeners() {
+        TreeItem<Object> root = treeView.getRoot();
+        if (root != null && root.getValue().equals("Filtreler")) {
+            for (TreeItem<Object> filterItem : root.getChildren()) {
+                if (filterItem.getValue().equals("Kategoriler")) {
+                    setupCategoryListeners(filterItem);
+                } else if (filterItem.getValue().equals("Malzeme Sayısı")) {
+                    setupIngredientCountListeners(filterItem);
+                } else if (filterItem.getValue().equals("Maliyet")) {
+                    setupCostRangeListener(filterItem);
+                }
+            }
+        }
+    }
+
+    private void setupCostRangeListener(TreeItem<Object> costItem) {
+        if (!costItem.getChildren().isEmpty()) {
+            TreeItem<Object> costRangeItem = costItem.getChildren().get(0);
+            if (costRangeItem.getValue() instanceof HBox) {
+                HBox hBox = (HBox) costRangeItem.getValue();
+                TextField minField = (TextField) hBox.getChildren().get(1);
+                TextField maxField = (TextField) hBox.getChildren().get(3);
+
+                minField.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if (isValidCostInput(newValue)) {
+                        loadRecipes(arama.getText());
+                    }
+                });
+
+                maxField.textProperty().addListener((observable, oldValue, newValue) -> {
+                    if (isValidCostInput(newValue)) {
+                        loadRecipes(arama.getText());
+                    }
+                });
+            }
+        }
+    }
+
+
+    private boolean isValidCostInput(String input) {
+        if (input.isEmpty()) {
+            return true;
+        }
+        try {
+            Double.parseDouble(input);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private void setupIngredientCountListeners(TreeItem<Object> ingredientCountItem) {
+        ToggleGroup group = new ToggleGroup();
+        for (TreeItem<Object> countItem : ingredientCountItem.getChildren()) {
+            if (countItem.getValue() instanceof HBox) {
+                HBox hBox = (HBox) countItem.getValue();
+                RadioButton radioButton = (RadioButton) hBox.getChildren().get(0);
+                radioButton.setToggleGroup(group);
+                radioButton.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                    if (newValue) {
+                        loadRecipes(arama.getText());
+                    }
+                });
+            }
+        }
+    }
+
+    private void setupCategoryListeners(TreeItem<Object> categoriesItem) {
+        for (TreeItem<Object> categoryItem : categoriesItem.getChildren()) {
+            if (categoryItem.getValue() instanceof HBox) {
+                HBox hBox = (HBox) categoryItem.getValue();
+                CheckBox checkBox = (CheckBox) hBox.getChildren().get(0);
+                checkBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                    loadRecipes(arama.getText());
+                });
+            }
+        }
+    }
+
+    private void setupCostFieldListeners() {
+        minCostField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (isValidCostInput(newValue)) {
+                loadRecipes(arama.getText());
+            }
+        });
+
+        maxCostField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (isValidCostInput(newValue)) {
+                loadRecipes(arama.getText());
+            }
+        });
+    }
+
+
+
 }
