@@ -6,7 +6,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
 import javafx.geometry.Pos;
 import javafx.scene.image.Image;
 
@@ -17,7 +16,7 @@ public class MaterialDialog {
     private final Database database;
 
     public MaterialDialog() {
-        this.database = new Database(); // Database sınıfını başlat
+        this.database = new Database();
     }
 
     public void showAddMaterialDialog() {
@@ -180,7 +179,7 @@ public class MaterialDialog {
             return 10.0; // Varsayılan değer
         }
         double unitPrice = Double.parseDouble(materialUnitPrice);
-        return Math.max(unitPrice, 10.0); // Negatif değerler için en az 10.0
+        return Math.max(unitPrice, 10.0); // Negatif değerler için en az 10.0
 }
 public void setOnMaterialAddedCallback(Runnable callback) {
     this.onMaterialAddedCallback = callback;

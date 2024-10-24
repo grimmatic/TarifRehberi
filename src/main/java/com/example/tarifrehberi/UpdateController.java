@@ -23,27 +23,6 @@ public class UpdateController {
         this.db = db;
     }
 
-    // formatInstructions metodu
-    private String formatInstructions(String instructions) {
-        return instructions.trim().replaceAll("\\s+", " ");
-    }
-
-    // Toast mesajını diyalog içinde sol alt köşede gösteren metod (3 saniye)
-    private void showToastInDialog(String message, Dialog<ButtonType> dialog) {
-        Label toastLabel = new Label(message);
-        toastLabel.setStyle("-fx-text-fill: green; -fx-padding: 10px;");
-        toastLabel.setAlignment(Pos.CENTER_LEFT);
-
-        BorderPane dialogPaneContent = (BorderPane) dialog.getDialogPane().getContent();
-        dialogPaneContent.setBottom(toastLabel);
-        BorderPane.setAlignment(toastLabel, Pos.BOTTOM_LEFT);
-
-        // 3 saniye sonra mesajı gizlemek için
-        PauseTransition pause = new PauseTransition(Duration.seconds(3));
-        pause.setOnFinished(event -> dialogPaneContent.setBottom(null));
-        pause.play();
-    }
-
     private Dialog<ButtonType> createDialog() {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Tarifi Güncelle");
@@ -195,18 +174,17 @@ public class UpdateController {
         this.onRecipeUpdatedCallback = callback;
         this.onRecipeUpdatedCallback = callback;
     }
-    public void showUpdateDialog(int tarifID, String recipeName, String category,
-                                 int preparationTime, String instructions) {
-
-
-
-
+    public void showUpdateDialog(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
 
         Dialog<ButtonType> dialog = createDialog();
 
+        HBox header = createHeader();
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.setHeader(header);
+        dialogPane.setStyle("-fx-background-color: #efe3f2;");
+
         TextField recipeNameField = new TextField(recipeName);
-        ComboBox<String> categoryComboBox = new ComboBox<>(FXCollections.observableArrayList(
-                db.getCategoriesFromRecipes(conn)));
+        ComboBox<String> categoryComboBox = new ComboBox<>(FXCollections.observableArrayList(db.getCategoriesFromRecipes(conn)));
         categoryComboBox.setValue(category);
 
         TextField preparationTimeField = new TextField(String.valueOf(preparationTime));
@@ -215,7 +193,6 @@ public class UpdateController {
         ListView<HBox> ingredientsListView = setupIngredients(tarifID);
         HBox ingredientInputBox = createIngredientInputBox(ingredientsListView, tarifID, dialog);
 
-        BorderPane borderPane = new BorderPane();
         VBox centerContent = new VBox(10,
                 new Label("Tarif Adı:"), recipeNameField,
                 new Label("Kategori:"), categoryComboBox,
@@ -223,10 +200,12 @@ public class UpdateController {
                 new Label("Talimatlar:"), instructionsField,
                 new Label("Malzemeler:"), ingredientsListView,
                 new Label("Yeni Malzeme Ekle:"), ingredientInputBox);
+        centerContent.setStyle("-fx-padding: 10;");
+        BorderPane borderPane = new BorderPane();
         borderPane.setCenter(centerContent);
 
-        dialog.getDialogPane().setContent(borderPane);
-        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialogPane.setContent(borderPane);
+        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         cancelButton.setText("İptal");
         Button okButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
@@ -290,6 +269,31 @@ public class UpdateController {
 
         return true; // Tarif başarıyla güncellendi, dialog kapanabilir
     }
+    private String formatInstructions(String instructions) {
+        StringBuilder formattedInstructions = new StringBuilder();
+        String[] lines = instructions.split("\\d+\\.");
 
+        for (int i = 1; i < lines.length; i++) {
+            formattedInstructions.append(i).append(".").append(lines[i].trim()).append("\n");
+        }
+
+        return formattedInstructions.toString().trim();
+    }
+
+    // Toast mesajını diyalog içinde sol alt köşede gösteren metod (3 saniye)
+    private void showToastInDialog(String message, Dialog<ButtonType> dialog) {
+        Label toastLabel = new Label(message);
+        toastLabel.setStyle("-fx-text-fill: green; -fx-padding: 10px;");
+        toastLabel.setAlignment(Pos.CENTER_LEFT);
+
+        BorderPane dialogPaneContent = (BorderPane) dialog.getDialogPane().getContent();
+        dialogPaneContent.setBottom(toastLabel);
+        BorderPane.setAlignment(toastLabel, Pos.BOTTOM_LEFT);
+
+        // 3 saniye sonra mesajı gizlemek için
+        PauseTransition pause = new PauseTransition(Duration.seconds(3));
+        pause.setOnFinished(event -> dialogPaneContent.setBottom(null));
+        pause.play();
+    }
 
 }

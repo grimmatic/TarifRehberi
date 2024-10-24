@@ -16,28 +16,18 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 public class AnaSayfaController implements Initializable{
 
-    @FXML
-    private TextField arama;
-    @FXML
-    private GridPane recipeGrid;
-    @FXML
-    private  AnchorPane anchor;
-    @FXML
-    private ComboBox<String> sortComboBox;
-    @FXML
-    private VBox filterVBox;
-    @FXML
-    private TreeView<Object> treeView;
-    @FXML
-    public Button treeviewButton;
-    @FXML
-    private Button malzemeAramaButonu;
+    @FXML private TextField arama;
+    @FXML private GridPane recipeGrid;
+    @FXML private  AnchorPane anchor;
+    @FXML private ComboBox<String> sortComboBox;
+    @FXML private VBox filterVBox;
+    @FXML private TreeView<Object> treeView;
+    @FXML public Button treeviewButton;
+    @FXML private Button malzemeAramaButonu;
     @FXML TextField minCostField;
     @FXML TextField maxCostField;
-
     private VBox ingredientSearchVBox;
     private Stage stage;
     int anchorYukeskligi = 0;
@@ -47,9 +37,7 @@ public class AnaSayfaController implements Initializable{
     private MaterialDialog materialDialog;
     private FlowPane ingredientFlowPane;
 
-
     Database db = new Database();
-
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -93,7 +81,6 @@ public class AnaSayfaController implements Initializable{
 
 
     }
-
 
 
     private void loadRecipes(String search) {
@@ -156,10 +143,6 @@ public class AnaSayfaController implements Initializable{
             }
 
 
-
-
-
-
             if (sort != null) {
                 switch (sort) {
                     case "-" -> query.append(" ORDER BY TarifID ASC");
@@ -169,7 +152,6 @@ public class AnaSayfaController implements Initializable{
                     case "Maliyet (Azalan)" -> query.append(" ORDER BY ToplamMaliyet DESC");
                 }
             }
-
 
 
             //   recipeGrid.getRowConstraints().clear();
@@ -186,7 +168,6 @@ public class AnaSayfaController implements Initializable{
                 String Tarif = rs.getString("Talimatlar");
                 int tarifID = rs.getInt("TarifID");
                 double toplamMaliyet = rs.getDouble("ToplamMaliyet");
-
 
                 boolean tarifYapilabilir = true;
                 double eksikMaliyet = 0.0;
@@ -212,13 +193,11 @@ public class AnaSayfaController implements Initializable{
                 }
 
 
-
                 Label nameLabel = new Label(recipeName);
                 nameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
                 Label categoryLabel = new Label(category);
                 Label timeLabel = new Label(preparationTime + " dakika");
                 Label costLabel;
-
 
                 if (tarifYapilabilir) {
                     costLabel = new Label(String.format("Maliyet: %.2f ₺", toplamMaliyet));
@@ -228,7 +207,6 @@ public class AnaSayfaController implements Initializable{
                     costLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #FF0000;");
 
                 }
-
 
                 VBox recipeBox = new VBox(nameLabel, categoryLabel, timeLabel,costLabel);
                 for (int i = 0; i < (int)Math.ceil((double)satir / 3); i++){
@@ -252,7 +230,6 @@ public class AnaSayfaController implements Initializable{
                 deleteButton.setGraphic(imageView);
                 deleteButton.setPadding(new Insets(20, 0, 0, 0));
 
-
                 Button updateButton = new Button();
                 updateButton.setStyle("-fx-background-color:transparent;");
                 ImageView imageView0 = new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/rewrite.png"))));
@@ -263,21 +240,15 @@ public class AnaSayfaController implements Initializable{
                 updateButton.setGraphic(imageView0);
                 updateButton.setPadding(new Insets(25, 0, 0, 0));
 
-
-
-
-
                 deleteButton.setOnAction(event -> { //delete butonuna tıklandıgında sil
                     db.deleteRecipe(conn, tarifID);
                     loadRecipes(arama.getText());
                 });
 
-
                 updateButton.setOnAction(event -> {
                     // Butona basıldığında dialogu göster
                     updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif);
                 });
-
 
                 buttonBox.getChildren().addAll(updateButton, deleteButton);
                 recipeBox.getChildren().add(buttonBox);
@@ -291,11 +262,6 @@ public class AnaSayfaController implements Initializable{
                 }
             }
 
-
-
-            // rs.close();
-            // stmt.close();
-            // conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -324,7 +290,6 @@ public class AnaSayfaController implements Initializable{
         categoryLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
         Label timeLabel = new Label("Hazırlama Süresi: " + preparationTime + " dakika");
         timeLabel.setStyle("-fx-font-size: 16px");
-
 
         double toplamMaliyet = 0.0;
         double eksikMaliyet = 0.0;
@@ -414,16 +379,12 @@ public class AnaSayfaController implements Initializable{
         homeButton.setMaxHeight(40);
         homeButton.setGraphic(imageView2);
 
-
         buttonBox.getChildren().addAll(editButton, deleteButton, homeButton);
         leftVBox.getChildren().add(buttonBox);
-
-
 
         Label ingredientsTitle = new Label("Malzemeler");
         ingredientsTitle.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
         rightVBox.getChildren().add(ingredientsTitle);
-
 
         try {
             String ingredientsQuery = "SELECT m.MalzemeAdi, tm.MalzemeMiktar, m.MalzemeBirim " +
@@ -439,7 +400,6 @@ public class AnaSayfaController implements Initializable{
                 double miktar = rs.getDouble("MalzemeMiktar");
                 String birim = rs.getString("MalzemeBirim");
 
-                // Miktar formatting
                 String formattedMiktar;
                 if (miktar == (int) miktar) {
                     formattedMiktar = String.format("%d", (int) miktar);
@@ -457,8 +417,6 @@ public class AnaSayfaController implements Initializable{
 
         HBox contentBox = new HBox(20);
         contentBox.getChildren().addAll(leftVBox, rightVBox);
-
-
 
         homeButton.setOnAction(event -> { //Bu butona tıklandığında, detayları gösteren detailPane kaldırılır
             // ve tariflerin listesi yeniden yüklenir.
@@ -479,7 +437,6 @@ public class AnaSayfaController implements Initializable{
             // UpdateController'daki showUpdateDialog metodunu çağır
             updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, instructions);
             loadRecipes(arama.getText());
-
 
             // Detay görünümünden çıkış ve listeyi tekrar yüklemek için:
             anchor.setPrefHeight(anchorYukeskligi);
@@ -521,27 +478,21 @@ public class AnaSayfaController implements Initializable{
     }
 
 
-
-
-
     @FXML
     private void handleTreeViewButtonAction(ActionEvent event) {
         filterVBox.setVisible(!filterVBox.isVisible());
     }
-
-
 
     @FXML
     private void handleAddRecipe() {
         tarifEkle.showAddRecipeDialog();
     }
 
-
     @FXML
     private void handleAddMaterial() {
-        materialDialog.showAddMaterialDialog(); // Dialog'ugöster
+        materialDialog.showAddMaterialDialog();
 
-}
+    }
 
 
     private String formatInstructions(String instructions) {
@@ -554,8 +505,6 @@ public class AnaSayfaController implements Initializable{
 
         return formattedInstructions.toString().trim();
     }
-
-
 
     private void connectToDatabase() {
         try {
@@ -687,7 +636,6 @@ public class AnaSayfaController implements Initializable{
     }
 
 
-
     private void displayMatchingRecipes(List<Map.Entry<String, Double>> matchingRecipes) {
         recipeGrid.getChildren().clear();
         int row = 0;
@@ -758,18 +706,7 @@ public class AnaSayfaController implements Initializable{
 
     }
 
-
-
-
-
-
     //Filtre
-
-
-
-
-
-
 
 
     private String getSelectedCategories() {
@@ -867,10 +804,6 @@ public class AnaSayfaController implements Initializable{
         }
     }
 
-
-
-
-
     private void setupTreeViewListeners() {
         TreeItem<Object> root = treeView.getRoot();
         if (root != null && root.getValue().equals("Filtreler")) {
@@ -908,7 +841,6 @@ public class AnaSayfaController implements Initializable{
             }
         }
     }
-
 
     private boolean isValidCostInput(String input) {
         if (input.isEmpty()) {
@@ -963,7 +895,5 @@ public class AnaSayfaController implements Initializable{
             }
         });
     }
-
-
 
 }
