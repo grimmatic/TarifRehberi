@@ -20,7 +20,7 @@ public class MaterialDialog {
     }
 
     public void showAddMaterialDialog() {
-        // Dialog penceresi oluşturma
+        // Dialog penceresi oluştur
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Malzeme Ekle");
 
@@ -43,17 +43,17 @@ public class MaterialDialog {
         header.setStyle("-fx-background-color: #7a1e9c; -fx-padding: 10;");
         header.setMaxWidth(Double.MAX_VALUE);
 
-        // Dialog penceresine header'ı ekle
+        // headerı ekle
         DialogPane dialogPane = dialog.getDialogPane();
         dialogPane.setHeader(header);
         dialogPane.setStyle("-fx-background-color: #efe3f2;");
 
-        // Dialog için bir GridPane oluştur
+        // gridpane oluştur
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
 
-        // Malzeme adı girişi için bir Label ve TextField ekle
+        // Malzemeadı için bir Label ve TextField
         Label materialNameLabel = new Label("Malzeme Adı:");
         TextField materialNameField = new TextField();
         materialNameField.setPromptText("Malzeme Adı");
@@ -61,7 +61,7 @@ public class MaterialDialog {
         grid.add(materialNameLabel, 0, 0);
         grid.add(materialNameField, 0, 1);
 
-        // Malzeme miktarı girişi için bir Label ve TextField ekle
+        // Malzeme miktarı için bir Label ve TextField
         Label materialQuantityLabel = new Label("Toplam Miktar:");
         TextField materialQuantityField = new TextField();
         materialQuantityField.setPromptText("Toplam Miktar");
@@ -69,16 +69,16 @@ public class MaterialDialog {
         grid.add(materialQuantityLabel, 0, 2);
         grid.add(materialQuantityField, 0, 3);
 
-        // Malzeme birimi için bir Label ve ComboBox ekleyin
+        // Malzeme birimi için bir Label ve ComboBox
         Label materialUnitLabel = new Label("Birim Seçin:");
         ComboBox<String> materialUnitComboBox = new ComboBox<>(); // ComboBox oluştur
-        materialUnitComboBox.getItems().addAll("kilogram", "litre", "adet"); // Birimleri ekleyin
+        materialUnitComboBox.getItems().addAll("kilogram", "litre", "adet","çay kaşığı","tatlı kaşığı","çorba kaşığı");  // Birimleri ekleyin
         materialUnitComboBox.setPromptText("Birim Seçin"); // Kullanıcıya ne yapması gerektiğini bildirin
         materialUnitComboBox.setPrefWidth(400);
         grid.add(materialUnitLabel, 0, 4);
         grid.add(materialUnitComboBox, 0, 5);
 
-        // Malzeme birim fiyatı için bir Label ve TextField ekle
+        // Malzeme birim fiyatı için bir Label ve TextField
         Label materialUnitPriceLabel = new Label("Birim Fiyat:");
         TextField materialUnitPriceField = new TextField();
         materialUnitPriceField.setPromptText("Birim Fiyat");
@@ -86,15 +86,15 @@ public class MaterialDialog {
         grid.add(materialUnitPriceLabel, 0, 6);
         grid.add(materialUnitPriceField, 0, 7);
 
-        // Mesaj gösterimi için bir Label ekleyin
+        // Mesaj gösterimi için Label
         Label messageLabel = new Label();
         messageLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;"); // Hata mesajı için stil
         grid.add(messageLabel, 0, 8); // GridPane'in altına ekleyin
 
-        // Dialog penceresine GridPane ekle
+        // Dialoga GridPane ekle
         dialogPane.setContent(grid);
 
-        // Ekle butonunu ayarla
+        // Ekle butonu
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         cancelButton.setText("İptal");
@@ -105,48 +105,48 @@ public class MaterialDialog {
 
         // Buton kontrolü
         dialog.getDialogPane().lookupButton(ButtonType.OK).addEventFilter(javafx.event.ActionEvent.ACTION, event -> {
-            // Kullanıcı "OK" butonuna bastı, malzeme verilerini al
-            String materialName = materialNameField.getText().trim(); // Trim ekleyerek boşlukları kaldırdık
+            // Kullanıcı ok butonuna bastı, malzeme verilerini al
+            String materialName = materialNameField.getText().trim(); // Trim le  boşlukları kaldırdı
             String materialQuantity = materialQuantityField.getText().trim();
-            String materialUnit = materialUnitComboBox.getValue(); // ComboBox'dan birimi al
+            String materialUnit = materialUnitComboBox.getValue(); // ComboBox tan birimi al
             String materialUnitPrice = materialUnitPriceField.getText().trim();
 
             // Kontroller
             if (materialName.isEmpty()) {
                 messageLabel.setText("Malzeme adı boş olamaz."); // Hata mesajını göster
                 event.consume(); // Dialog kapanmasın
-                return; // Dialog kapanmasın
+                return;
             }
             if (materialQuantity.isEmpty()) {
                 messageLabel.setText("Toplam miktar boş olamaz."); // Hata mesajını göster
                 event.consume(); // Dialog kapanmasın
-                return; // Dialog kapanmasın
+                return;
             }
             if (materialUnit == null || materialUnit.isEmpty()) {
                 messageLabel.setText("Birim alanı boş olamaz."); // Hata mesajını göster
-                event.consume(); // Dialog kapanmasın
-                return; // Dialog kapanmasın
+                event.consume();
+                return;
             }
             if (materialUnitPrice.isEmpty()) {
                 messageLabel.setText("Birim fiyatı boş olamaz."); // Hata mesajını göster
-                event.consume(); // Dialog kapanmasın
-                return; // Dialog kapanmasın
+                event.consume();
+                return;
             }
 
             try {
-                // Toplam Miktar ve Birim Fiyat için varsayılan değerleri kontrol et
+                // Toplam Miktar ve Birim Fiyat için varsayılan değerler kontrol edilsim
                 Integer quantity = parseQuantity(materialQuantity);
                 Double unitPrice = parseUnitPrice(materialUnitPrice);
 
                 // Veritabanı bağlantısı oluştur
                 try (Connection conn = database.connect()) {
                     if (conn != null) {
-                        // Malzeme ekleme işlemini gerçekleştirin
+                        // Malzeme ekleme işlemi
                         database.addMalzeme(conn, materialName, materialQuantity, unitPrice, materialUnit);
                         if (onMaterialAddedCallback != null) {
                             onMaterialAddedCallback.run();
                         }
-                        dialog.close(); // Dialog kapanmasını sağlar
+                        dialog.close(); // Dialogkapansın
                     }
                 }
             } catch (RuntimeException e) {
@@ -158,9 +158,6 @@ public class MaterialDialog {
                 event.consume(); // Dialog kapanmasın
             }
         });
-
-
-
 
     }
 
@@ -180,7 +177,7 @@ public class MaterialDialog {
         }
         double unitPrice = Double.parseDouble(materialUnitPrice);
         return Math.max(unitPrice, 10.0); // Negatif değerler için en az 10.0
-}
-public void setOnMaterialAddedCallback(Runnable callback) {
-    this.onMaterialAddedCallback = callback;
+    }
+    public void setOnMaterialAddedCallback(Runnable callback) {
+        this.onMaterialAddedCallback = callback;
 }}

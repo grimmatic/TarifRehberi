@@ -1,6 +1,5 @@
 package com.example.tarifrehberi;
 
-
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -83,7 +82,7 @@ public class TarifEkle {
         newAmountField.setPromptText("Miktar");
 
         ComboBox<String> newUnitComboBox = new ComboBox<>();
-        newUnitComboBox.getItems().addAll("adet", "kilogram", "litre");
+        newUnitComboBox.getItems().addAll("adet", "kilogram", "litre","çay kaşığı","tatlı kaşığı","çorba kaşığı");
         newUnitComboBox.setPromptText("Birim seçin");
 
         Button addIngredientButton = new Button("Malzeme Ekle");
@@ -237,10 +236,6 @@ public class TarifEkle {
         }
 
         return formattedInstructions.toString().trim();
-    }
-
-
-
-
+}
 
 }

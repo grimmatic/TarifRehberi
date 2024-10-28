@@ -85,7 +85,7 @@ public class UpdateController {
         existingIngredientsComboBox.getItems().addAll(existingIngredients);
         existingIngredientsComboBox.setPromptText("Mevcut malzeme seçin");
 
-        // Kullanıcı bir malzeme seçtiğinde TextField'a yazdır
+        // malzeme seçiildiğinde TextFielda yazdır
         existingIngredientsComboBox.setOnAction(e -> {
             String selectedIngredient = existingIngredientsComboBox.getValue();
             newIngredientField.setText(selectedIngredient);
@@ -95,7 +95,7 @@ public class UpdateController {
         newAmountField.setPromptText("Miktar");
 
         ComboBox<String> newUnitComboBox = new ComboBox<>();
-        newUnitComboBox.getItems().addAll("adet", "kilogram", "litre");
+        newUnitComboBox.getItems().addAll("adet", "kilogram", "litre","çay kaşığı","tatlı kaşığı","çorba kaşığı");
         newUnitComboBox.setPromptText("Birim seçin");
 
         Button addIngredientButton = new Button("Malzeme Ekle");
@@ -171,7 +171,6 @@ public class UpdateController {
         return new HBox(10, existingIngredientsComboBox, newIngredientField, newAmountField, newUnitComboBox, addIngredientButton, removeIngredientButton);
     }
     public void setOnRecipeUpdatedCallback(Runnable callback) {
-        this.onRecipeUpdatedCallback = callback;
         this.onRecipeUpdatedCallback = callback;
     }
     public void showUpdateDialog(int tarifID, String recipeName, String category, int preparationTime, String instructions) {
@@ -267,7 +266,7 @@ public class UpdateController {
             onRecipeUpdatedCallback.run();
         }
 
-        return true; // Tarif başarıyla güncellendi, dialog kapanabilir
+        return true; // Tarif güncellendi, yani dialog kapanabilir
     }
     private String formatInstructions(String instructions) {
         StringBuilder formattedInstructions = new StringBuilder();
@@ -290,10 +289,10 @@ public class UpdateController {
         dialogPaneContent.setBottom(toastLabel);
         BorderPane.setAlignment(toastLabel, Pos.BOTTOM_LEFT);
 
-        // 3 saniye sonra mesajı gizlemek için
+        // 3 saniye sonra mesajı gizlemek içn
         PauseTransition pause = new PauseTransition(Duration.seconds(3));
         pause.setOnFinished(event -> dialogPaneContent.setBottom(null));
         pause.play();
-    }
+}
 
 }

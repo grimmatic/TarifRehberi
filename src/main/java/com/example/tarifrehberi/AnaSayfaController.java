@@ -46,6 +46,7 @@ public class AnaSayfaController implements Initializable{
         tarifEkle = new TarifEkle(db, conn);
         materialDialog = new MaterialDialog();
 
+        createIngredientSearchVBox();
 
         loadRecipes("");
 
@@ -246,7 +247,7 @@ public class AnaSayfaController implements Initializable{
                 });
 
                 updateButton.setOnAction(event -> {
-                    // Butona basıldığında dialogu göster
+                    // Butona basıldığında dialoğu göster
                     updateController.showUpdateDialog(tarifID, recipeName, category, preparationTime, Tarif);
                 });
 
@@ -418,7 +419,7 @@ public class AnaSayfaController implements Initializable{
         HBox contentBox = new HBox(20);
         contentBox.getChildren().addAll(leftVBox, rightVBox);
 
-        homeButton.setOnAction(event -> { //Bu butona tıklandığında, detayları gösteren detailPane kaldırılır
+        homeButton.setOnAction(event -> { //Bu butona tıklandığında detayları gösteren detailPane kaldırılıyor
             // ve tariflerin listesi yeniden yüklenir.
             // Ayrıca diğer arayüz bileşenleri görünür hale gelir.
             anchor.setPrefHeight(anchorYukeskligi);
@@ -447,7 +448,7 @@ public class AnaSayfaController implements Initializable{
             recipeGrid.setVisible(true);
         });
 
-        deleteButton.setOnAction(event -> { //Silme İşlemi: Bu butona tıklandığında,
+        deleteButton.setOnAction(event -> {
             // tarif veritabanından silinir ve tariflerin listesi yeniden yüklenir.
             db.deleteRecipe(conn, tarifID);
             loadRecipes(arama.getText());
@@ -893,7 +894,7 @@ public class AnaSayfaController implements Initializable{
             if (isValidCostInput(newValue)) {
                 loadRecipes(arama.getText());
             }
-        });
-    }
+   });
+}
 
 }

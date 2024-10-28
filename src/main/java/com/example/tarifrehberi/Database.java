@@ -6,14 +6,14 @@ import java.util.stream.Collectors;
 public class Database {
 
 
-    // Veritabanı yolu.VT bu dosya üzerinden çalışır
+    // Veritabanı yolu.VT bu dosya üzerinden çalıyor
     private static final String DB_URL = "jdbc:sqlite:./identifier.sqlite";
 
     // Veritabanı bağlantısını oluşturma
     public static Connection connect() {
         Connection conn = null;
         try {
-            // SQLite bağlantısı oluşturuluyor
+            // SQLite bağlantısı oluşturulusun
             conn = DriverManager.getConnection(DB_URL); // Bağlantıyı oluştur
             System.out.println("Veritabanına bağlanıldı.");
         } catch (SQLException e) {
@@ -149,16 +149,16 @@ public class Database {
 
         try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
             pstmt.setString(1, malzemeAdi);
-            pstmt.setString(2, toplamMiktar); // Miktarı String olarak ayarlayın
-            pstmt.setString(3, malzemeBirim); // Birimi MalzemeBirim olarak ayarlayın
+            pstmt.setString(2, toplamMiktar); // Miktarı String olarak ayarladık
+            pstmt.setString(3, malzemeBirim); // Birimi MalzemeBirim olarak ayarladık
             pstmt.setDouble(4, birimFiyat);
 
             pstmt.executeUpdate();
             System.out.println("Malzeme başarıyla eklendi.");
         } catch (SQLException e) {
             System.out.println("Malzeme eklenirken hata: " + e.getMessage());
-}
-}
+        }
+    }
 
 
 
@@ -167,10 +167,6 @@ public class Database {
         try {
             String query = "INSERT INTO TarifMalzeme (TarifID, MalzemeID, MalzemeMiktar) VALUES (?, ?, ?)";
             PreparedStatement pstmt = conn.prepareStatement(query);
-            //preperadstatement avantajları :
-            // Performans: Sorgular önceden derlenmiş olduğundan performans açısından daha iyidir.
-            //Güvenlik: SQL enjeksiyon saldırılarına karşı koruma sağlar, çünkü parametreler doğrudan sorguya gömülmez.
-            //Amaç: Sorguyu dinamik hale getirir ve farklı tarif ve malzemeler için tekrar kullanılabilir olmasını sağlar.
             pstmt.setInt(1, tarifID);
             pstmt.setInt(2, malzemeID);
             pstmt.setFloat(3, miktar);
@@ -320,7 +316,7 @@ public class Database {
             pstmt.setString(1, tarifAdi);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
-                return rs.getInt(1) > 0; // Tarif zaten varsa true döndür
+                return rs.getInt(1) > 0; // Tarif zaten varsa true döndürcek
             }
         } catch (Exception e) {
             System.out.println(e);
@@ -365,11 +361,11 @@ public class Database {
     // Belirli bir tarifin malzemelerini veritabanından alma
     public List<String> getIngredientsFromDatabase(Connection conn) {
         List<String> ingredients = new ArrayList<>();
-        String sql = "SELECT MalzemeAdi FROM Malzemeler"; // Tüm malzemeleri seçiyoruz
+        String sql = "SELECT MalzemeAdi FROM Malzemeler"; // Tüm malzemeler
 
         try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                ingredients.add(rs.getString("MalzemeAdi")); // Malzeme adını listeye ekliyoruz
+                ingredients.add(rs.getString("MalzemeAdi")); // Malzeme adını listeye eklE
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -412,6 +408,6 @@ public class Database {
         sortedMatches.sort(Map.Entry.<String, Double>comparingByValue().reversed());
 
         return sortedMatches;
-    }
+}
 
 }
